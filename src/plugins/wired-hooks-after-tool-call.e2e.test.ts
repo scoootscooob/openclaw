@@ -127,6 +127,7 @@ describe("after_tool_call hook wiring", () => {
     expect(event.error).toBeUndefined();
     expect(typeof event.durationMs).toBe("number");
     expect(context.toolName).toBe("read");
+    expect(context.agentId).toBe("main");
     expect(context.sessionKey).toBe("test-session");
   });
 
@@ -166,6 +167,10 @@ describe("after_tool_call hook wiring", () => {
       throw new Error("missing hook call payload");
     }
     expect(event.error).toBeDefined();
+
+    // agentId should be undefined when not provided
+    const context = firstCall?.[1] as { agentId?: string } | undefined;
+    expect(context?.agentId).toBeUndefined();
   });
 
   it("does not call runAfterToolCall when no hooks registered", async () => {

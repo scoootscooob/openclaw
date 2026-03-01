@@ -426,7 +426,7 @@ export async function handleToolExecutionEnd(
     void hookRunnerAfter
       .runAfterToolCall(hookEvent, {
         toolName,
-        agentId: undefined,
+        agentId: ctx.params.agentId,
         sessionKey: ctx.params.sessionKey,
       })
       .catch((err) => {
