@@ -124,6 +124,7 @@ import {
   auditTelegramGroupMembership,
   collectTelegramUnmentionedGroupIds,
 } from "../../telegram/audit.js";
+import { markdownToTelegramHtmlChunks } from "../../telegram/format.js";
 import { monitorTelegramProvider } from "../../telegram/monitor.js";
 import { probeTelegram } from "../../telegram/probe.js";
 import { sendMessageTelegram, sendPollTelegram } from "../../telegram/send.js";
@@ -392,6 +393,7 @@ function createRuntimeChannel(): PluginRuntime["channel"] {
     telegram: {
       auditGroupMembership: auditTelegramGroupMembership,
       collectUnmentionedGroupIds: collectTelegramUnmentionedGroupIds,
+      markdownToTelegramHtmlChunks,
       probeTelegram,
       resolveTelegramToken,
       sendMessageTelegram,

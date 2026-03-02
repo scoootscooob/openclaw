@@ -316,7 +316,8 @@ export const telegramPlugin: ChannelPlugin<ResolvedTelegramAccount, TelegramProb
   },
   outbound: {
     deliveryMode: "direct",
-    chunker: (text, limit) => getTelegramRuntime().channel.text.chunkMarkdownText(text, limit),
+    chunker: (text, limit) =>
+      getTelegramRuntime().channel.telegram.markdownToTelegramHtmlChunks(text, limit),
     chunkerMode: "markdown",
     textChunkLimit: 4000,
     pollMaxOptions: 10,
@@ -326,6 +327,7 @@ export const telegramPlugin: ChannelPlugin<ResolvedTelegramAccount, TelegramProb
       const messageThreadId = parseTelegramThreadId(threadId);
       const result = await send(to, text, {
         verbose: false,
+        textMode: "html",
         messageThreadId,
         replyToMessageId,
         accountId: accountId ?? undefined,
@@ -349,6 +351,7 @@ export const telegramPlugin: ChannelPlugin<ResolvedTelegramAccount, TelegramProb
       const messageThreadId = parseTelegramThreadId(threadId);
       const result = await send(to, text, {
         verbose: false,
+        textMode: "html",
         mediaUrl,
         mediaLocalRoots,
         messageThreadId,

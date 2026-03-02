@@ -131,6 +131,8 @@ type ResolveTelegramToken = typeof import("../../telegram/token.js").resolveTele
 type SendMessageTelegram = typeof import("../../telegram/send.js").sendMessageTelegram;
 type SendPollTelegram = typeof import("../../telegram/send.js").sendPollTelegram;
 type MonitorTelegramProvider = typeof import("../../telegram/monitor.js").monitorTelegramProvider;
+type MarkdownToTelegramHtmlChunks =
+  typeof import("../../telegram/format.js").markdownToTelegramHtmlChunks;
 type TelegramMessageActions =
   typeof import("../../channels/plugins/actions/telegram.js").telegramMessageActions;
 type ProbeSignal = typeof import("../../signal/probe.js").probeSignal;
@@ -309,6 +311,7 @@ export type PluginRuntime = {
     telegram: {
       auditGroupMembership: AuditTelegramGroupMembership;
       collectUnmentionedGroupIds: CollectTelegramUnmentionedGroupIds;
+      markdownToTelegramHtmlChunks: MarkdownToTelegramHtmlChunks;
       probeTelegram: ProbeTelegram;
       resolveTelegramToken: ResolveTelegramToken;
       sendMessageTelegram: SendMessageTelegram;

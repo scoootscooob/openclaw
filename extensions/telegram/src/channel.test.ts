@@ -153,6 +153,49 @@ describe("telegramPlugin duplicate token guard", () => {
     );
   });
 
+  it("outbound chunker delegates to HTML-aware markdownToTelegramHtmlChunks", () => {
+    const markdownToTelegramHtmlChunks = vi.fn(() => ["<b>chunk1</b>", "<b>chunk2</b>"]);
+    setTelegramRuntime({
+      channel: {
+        telegram: {
+          markdownToTelegramHtmlChunks,
+        },
+      },
+    } as unknown as PluginRuntime);
+
+    const chunks = telegramPlugin.outbound!.chunker!("**chunk1**\n**chunk2**", 4000);
+
+    expect(markdownToTelegramHtmlChunks).toHaveBeenCalledWith("**chunk1**\n**chunk2**", 4000);
+    expect(chunks).toEqual(["<b>chunk1</b>", "<b>chunk2</b>"]);
+  });
+
+  it("outbound sendText passes textMode html so HTML chunks are not double-converted", async () => {
+    const sendMessageTelegram = vi.fn(async () => ({ messageId: "tg-html-1", chatId: "12345" }));
+    setTelegramRuntime({
+      channel: {
+        telegram: {
+          sendMessageTelegram,
+        },
+      },
+    } as unknown as PluginRuntime);
+
+    await telegramPlugin.outbound!.sendText!({
+      cfg: createCfg(),
+      to: "12345",
+      text: "<b>hello</b>",
+      accountId: "ops",
+    });
+
+    expect(sendMessageTelegram).toHaveBeenCalledWith(
+      "12345",
+      "<b>hello</b>",
+      expect.objectContaining({
+        textMode: "html",
+        verbose: false,
+      }),
+    );
+  });
+
   it("forwards mediaLocalRoots to sendMessageTelegram for outbound media sends", async () => {
     const sendMessageTelegram = vi.fn(async () => ({ messageId: "tg-1" }));
     setTelegramRuntime({
