@@ -60,6 +60,12 @@
   background: rgba(0, 0, 0, 0.15);
   padding: 0.15em 0.4em;
   border-radius: 4px;
+  /* Prevent mid-word breaks inside inline code so that copy-paste does not
+     inject spaces at wrap boundaries (see #32230). The parent .chat-text
+     sets overflow-wrap: break-word which is inherited; resetting it here
+     keeps tokens like UUIDs intact when copied. */
+  overflow-wrap: normal;
+  word-break: keep-all;
 }
 
 .chat-text :where(pre) {
@@ -67,6 +73,10 @@
   border-radius: 6px;
   padding: 10px 12px;
   overflow-x: auto;
+  /* Explicit white-space: pre prevents the inherited overflow-wrap: break-word
+     from splitting long tokens at wrap boundaries during copy-paste (#32230). */
+  white-space: pre;
+  overflow-wrap: normal;
 }
 
 .chat-text :where(pre code) {
