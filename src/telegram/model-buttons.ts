@@ -4,9 +4,12 @@
  * Callback data patterns (max 64 bytes for Telegram):
  * - mdl_prov              - show providers list
  * - mdl_list_{prov}_{pg}  - show models for provider (page N, 1-indexed)
- * - mdl_sel_{provider/id} - select model
+ * - mdl_sel_{provider/id} - select model (when under 64 bytes)
+ * - mdl_h_{hash}          - select model via hash lookup (when full ID exceeds 64 bytes)
  * - mdl_back              - back to providers list
  */
+
+import { createHash } from "node:crypto";
 
 export type ButtonRow = Array<{ text: string; callback_data: string }>;
 
@@ -34,6 +37,30 @@ const MODELS_PAGE_SIZE = 8;
 const MAX_CALLBACK_DATA_BYTES = 64;
 
 /**
+ * Maps short hash keys to their full "provider/model" references so that
+ * models with callback_data exceeding 64 bytes can still be selected.
+ * Entries are added when building keyboards and read when parsing callbacks.
+ * The map is bounded: older entries are evicted when the cap is reached.
+ */
+const callbackHashMap = new Map<string, string>();
+const HASH_MAP_MAX_SIZE = 512;
+
+function modelRefToHash(modelRef: string): string {
+  return createHash("sha256").update(modelRef).digest("hex").slice(0, 12);
+}
+
+function storeHashAlias(hash: string, modelRef: string): void {
+  if (callbackHashMap.size >= HASH_MAP_MAX_SIZE) {
+    // Evict oldest entry (first inserted)
+    const firstKey = callbackHashMap.keys().next().value;
+    if (firstKey) {
+      callbackHashMap.delete(firstKey);
+    }
+  }
+  callbackHashMap.set(hash, modelRef);
+}
+
+/**
  * Parse a model callback_data string into a structured object.
  * Returns null if the data doesn't match a known pattern.
  */
@@ -55,6 +82,24 @@ export function parseModelCallbackData(data: string): ParsedModelCallback | null
     if (provider && Number.isFinite(page) && page >= 1) {
       return { type: "list", provider, page };
     }
+  }
+
+  // mdl_h_{hash} — hashed model reference for long IDs
+  const hashMatch = trimmed.match(/^mdl_h_([0-9a-f]{12})$/);
+  if (hashMatch) {
+    const hash = hashMatch[1];
+    const modelRef = hash ? callbackHashMap.get(hash) : undefined;
+    if (modelRef) {
+      const slashIndex = modelRef.indexOf("/");
+      if (slashIndex > 0 && slashIndex < modelRef.length - 1) {
+        return {
+          type: "select",
+          provider: modelRef.slice(0, slashIndex),
+          model: modelRef.slice(slashIndex + 1),
+        };
+      }
+    }
+    return null;
   }
 
   // mdl_sel_{provider/model}
@@ -133,10 +178,14 @@ export function buildModelsKeyboard(params: ModelsKeyboardParams): ButtonRow[] {
     : currentModel;
 
   for (const model of pageModels) {
-    const callbackData = `mdl_sel_${provider}/${model}`;
-    // Skip models that would exceed Telegram's callback_data limit
+    const modelRef = `${provider}/${model}`;
+    let callbackData = `mdl_sel_${modelRef}`;
+    // Fall back to a short hash when the full callback_data would exceed
+    // Telegram's 64-byte limit (common with long Bedrock model IDs).
     if (Buffer.byteLength(callbackData, "utf8") > MAX_CALLBACK_DATA_BYTES) {
-      continue;
+      const hash = modelRefToHash(modelRef);
+      storeHashAlias(hash, modelRef);
+      callbackData = `mdl_h_${hash}`;
     }
 
     const isCurrentModel = model === currentModelId;

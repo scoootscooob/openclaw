@@ -296,7 +296,7 @@ describe("large model lists (OpenRouter-scale)", () => {
     }
   });
 
-  it("skips models that would exceed callback_data limit", () => {
+  it("uses hash-based callback_data for models that would exceed 64-byte limit", () => {
     const models = [
       "short-model",
       "this-is-an-extremely-long-model-name-that-definitely-exceeds-the-sixty-four-byte-limit",
@@ -309,10 +309,39 @@ describe("large model lists (OpenRouter-scale)", () => {
       totalPages: 1,
     });
 
-    // Should have 2 model buttons (skipping the long one) + back
+    // All 3 model buttons should be present (none skipped) + back
     const modelButtons = result.filter((row) => !row[0]?.callback_data.startsWith("mdl_back"));
-    expect(modelButtons.length).toBe(2);
+    expect(modelButtons.length).toBe(3);
     expect(modelButtons[0]?.[0]?.text).toBe("short-model");
-    expect(modelButtons[1]?.[0]?.text).toBe("another-short");
+    expect(modelButtons[0]?.[0]?.callback_data).toMatch(/^mdl_sel_/);
+    // Long model should use hash-based callback
+    expect(modelButtons[1]?.[0]?.callback_data).toMatch(/^mdl_h_[0-9a-f]{12}$/);
+    expect(
+      Buffer.byteLength(modelButtons[1]?.[0]?.callback_data ?? "", "utf8"),
+    ).toBeLessThanOrEqual(64);
+    expect(modelButtons[2]?.[0]?.text).toBe("another-short");
+  });
+
+  it("hash-based callback_data resolves back to provider/model via parseModelCallbackData", () => {
+    const longModel = "us.anthropic.claude-4-sonnet-20260514-v2:0";
+    const provider = "bedrock-us-east-1";
+    const result = buildModelsKeyboard({
+      provider,
+      models: [longModel],
+      currentPage: 1,
+      totalPages: 1,
+    });
+
+    const modelButton = result.find((row) => row[0]?.callback_data.startsWith("mdl_h_"));
+    expect(modelButton).toBeDefined();
+    const callbackData = modelButton?.[0]?.callback_data ?? "";
+    expect(Buffer.byteLength(callbackData, "utf8")).toBeLessThanOrEqual(64);
+
+    const parsed = parseModelCallbackData(callbackData);
+    expect(parsed).toEqual({
+      type: "select",
+      provider,
+      model: longModel,
+    });
   });
 });
