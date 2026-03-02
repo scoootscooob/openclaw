@@ -34,7 +34,7 @@ describe("sanitizeSessionHistory e2e smoke", () => {
     });
   });
 
-  it("keeps images-only sanitize policy without tool-call id rewriting for openai-responses", async () => {
+  it("applies images-only sanitize with strict tool-call id rewriting for openai-responses", async () => {
     vi.mocked(helpers.isGoogleModelApi).mockReturnValue(false);
 
     await sanitizeWithOpenAIResponses({
@@ -48,7 +48,7 @@ describe("sanitizeSessionHistory e2e smoke", () => {
       "session:history",
       expect.objectContaining({
         sanitizeMode: "images-only",
-        sanitizeToolCallIds: false,
+        sanitizeToolCallIds: true,
       }),
     );
   });

@@ -37,8 +37,15 @@ export function sanitizeToolCallId(id: string, mode: ToolCallIdMode = "strict"):
   }
 
   // Some providers require strictly alphanumeric tool call IDs.
+  // Cap at 40 chars — OpenAI rejects tool call IDs longer than this.
+  const MAX_STRICT_LEN = 40;
   const alphanumericOnly = id.replace(/[^a-zA-Z0-9]/g, "");
-  return alphanumericOnly.length > 0 ? alphanumericOnly : "sanitizedtoolid";
+  if (alphanumericOnly.length > 0) {
+    return alphanumericOnly.length <= MAX_STRICT_LEN
+      ? alphanumericOnly
+      : alphanumericOnly.slice(0, MAX_STRICT_LEN);
+  }
+  return "sanitizedtoolid";
 }
 
 export function extractToolCallsFromAssistant(
@@ -89,8 +96,8 @@ export function isValidCloudCodeAssistToolId(id: string, mode: ToolCallIdMode = 
   if (mode === "strict9") {
     return /^[a-zA-Z0-9]{9}$/.test(id);
   }
-  // Strictly alphanumeric for providers with tighter tool ID constraints
-  return /^[a-zA-Z0-9]+$/.test(id);
+  // Strictly alphanumeric, max 40 chars for providers with tighter tool ID constraints
+  return /^[a-zA-Z0-9]+$/.test(id) && id.length <= 40;
 }
 
 function shortHash(text: string, length = 8): string {

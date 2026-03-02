@@ -175,7 +175,7 @@ describe("sanitizeSessionHistory", () => {
     );
   });
 
-  it("does not sanitize tool call ids for openai-responses", async () => {
+  it("sanitizes tool call ids for openai-responses with strict mode", async () => {
     setNonGoogleModelApi();
 
     await sanitizeWithOpenAIResponses({
@@ -187,7 +187,7 @@ describe("sanitizeSessionHistory", () => {
     expect(helpers.sanitizeSessionMessagesImages).toHaveBeenCalledWith(
       mockMessages,
       "session:history",
-      expect.objectContaining({ sanitizeMode: "images-only", sanitizeToolCallIds: false }),
+      expect.objectContaining({ sanitizeMode: "images-only", sanitizeToolCallIds: true }),
     );
   });
 

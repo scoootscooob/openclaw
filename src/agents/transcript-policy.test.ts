@@ -34,14 +34,14 @@ describe("resolveTranscriptPolicy", () => {
     expect(policy.toolCallIdMode).toBe("strict9");
   });
 
-  it("disables sanitizeToolCallIds for OpenAI provider", () => {
+  it("enables sanitizeToolCallIds for OpenAI provider (40-char limit)", () => {
     const policy = resolveTranscriptPolicy({
       provider: "openai",
       modelId: "gpt-4o",
       modelApi: "openai",
     });
-    expect(policy.sanitizeToolCallIds).toBe(false);
-    expect(policy.toolCallIdMode).toBeUndefined();
+    expect(policy.sanitizeToolCallIds).toBe(true);
+    expect(policy.toolCallIdMode).toBe("strict");
   });
 
   it("enables user-turn merge for strict OpenAI-compatible providers", () => {

@@ -2,6 +2,7 @@ import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import { describe, expect, it } from "vitest";
 import {
   isValidCloudCodeAssistToolId,
+  sanitizeToolCallId,
   sanitizeToolCallIdsForCloudCodeAssist,
 } from "./tool-call-id.js";
 
@@ -139,6 +140,20 @@ describe("sanitizeToolCallIdsForCloudCodeAssist", () => {
       const { aId, bId } = expectCollisionIdsRemainDistinct(out, "strict");
       expect(aId.length).toBeLessThanOrEqual(40);
       expect(bId.length).toBeLessThanOrEqual(40);
+    });
+
+    it("sanitizeToolCallId truncates individual IDs exceeding 40 chars", () => {
+      const longId = `call_${"x".repeat(60)}`;
+      const sanitized = sanitizeToolCallId(longId, "strict");
+      // After stripping underscore: "call" + 60 "x"s = 64 chars, must be capped at 40
+      expect(sanitized.length).toBeLessThanOrEqual(40);
+      expect(sanitized).toMatch(/^[a-zA-Z0-9]+$/);
+    });
+
+    it("isValidCloudCodeAssistToolId rejects IDs exceeding 40 chars", () => {
+      const longId = "a".repeat(41);
+      expect(isValidCloudCodeAssistToolId(longId, "strict")).toBe(false);
+      expect(isValidCloudCodeAssistToolId("a".repeat(40), "strict")).toBe(true);
     });
   });
 
