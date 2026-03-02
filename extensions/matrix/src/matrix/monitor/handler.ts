@@ -14,6 +14,7 @@ import {
   type RuntimeLogger,
 } from "openclaw/plugin-sdk/matrix";
 import type { CoreConfig, MatrixRoomConfig, ReplyToMode } from "../../types.js";
+import { resolveMatrixAccountConfig } from "../accounts.js";
 import { fetchEventSummary } from "../actions/summary.js";
 import {
   formatPollAsText,
@@ -237,13 +238,23 @@ export function createMatrixRoomMessageHandler(params: MatrixMonitorHandlerParam
       // Hot-reload: re-read allowlists from the live config so new entries added
       // after startup take effect without a restart.  Display-name entries are only
       // resolved at startup; hot-reloaded entries must be full Matrix IDs (@user:server).
+      // We resolve the per-account config so multi-account deployments pick up
+      // account-specific allowlist edits (not just the top-level defaults).
       const liveConfig = core.config.loadConfig() as CoreConfig;
-      const liveDmAllowFrom = (liveConfig.channels?.matrix?.dm?.allowFrom ?? []).map(String);
+      const liveAccountConfig = resolveMatrixAccountConfig({
+        cfg: liveConfig,
+        accountId,
+      });
+      const liveDmAllowFrom = (liveAccountConfig.dm?.allowFrom ?? []).map(String);
       const effectiveDmAllowFrom = mergeAllowlist({
         existing: allowFrom,
         additions: liveDmAllowFrom,
       });
-      const groupAllowFrom = (liveConfig.channels?.matrix?.groupAllowFrom ?? []).map(String);
+      const liveGroupAllowFrom = (liveAccountConfig.groupAllowFrom ?? []).map(String);
+      const groupAllowFrom = mergeAllowlist({
+        existing: (cfg.channels?.matrix?.groupAllowFrom ?? []).map(String),
+        additions: liveGroupAllowFrom,
+      });
       const { access, effectiveAllowFrom, effectiveGroupAllowFrom, groupAllowConfigured } =
         await resolveMatrixAccessState({
           isDirectMessage,
