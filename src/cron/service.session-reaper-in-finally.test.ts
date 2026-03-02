@@ -119,4 +119,47 @@ describe("CronService - session reaper runs in finally block (#31946)", () => {
     expect(resolvedPaths.length).toBeGreaterThan(0);
     expect(state.running).toBe(false);
   });
+
+  it("prunes expired cron-run sessions even when cron store load throws", async () => {
+    const store = await makeStorePath();
+    const now = Date.parse("2026-02-10T10:00:00.000Z");
+    const sessionStorePath = path.join(path.dirname(store.storePath), "sessions", "sessions.json");
+
+    // Force onTimer's try-block to throw before normal execution flow.
+    await fs.mkdir(path.dirname(store.storePath), { recursive: true });
+    await fs.writeFile(store.storePath, "{invalid-json", "utf-8");
+
+    // Seed an expired cron-run session entry that should be pruned by the reaper.
+    await fs.mkdir(path.dirname(sessionStorePath), { recursive: true });
+    await fs.writeFile(
+      sessionStorePath,
+      JSON.stringify({
+        "agent:agent-default:cron:failing-job:run:stale": {
+          sessionId: "session-stale",
+          updatedAt: now - 3 * 24 * 3_600_000,
+        },
+      }),
+      "utf-8",
+    );
+
+    const state = createCronServiceState({
+      storePath: store.storePath,
+      cronEnabled: true,
+      log: noopLogger,
+      nowMs: () => now,
+      enqueueSystemEvent: vi.fn(),
+      requestHeartbeatNow: vi.fn(),
+      runIsolatedAgentJob: vi.fn(),
+      sessionStorePath,
+    });
+
+    await expect(onTimer(state)).rejects.toThrow("Failed to parse cron store");
+
+    const updatedSessionStore = JSON.parse(await fs.readFile(sessionStorePath, "utf-8")) as Record<
+      string,
+      unknown
+    >;
+    expect(updatedSessionStore).toEqual({});
+    expect(state.running).toBe(false);
+  });
 });
