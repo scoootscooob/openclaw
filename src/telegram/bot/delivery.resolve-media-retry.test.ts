@@ -203,4 +203,85 @@ describe("resolveMedia getFile retry", () => {
     // Should retry transient errors.
     expect(result).not.toBeNull();
   });
+
+  it("preserves original document filename from msg.document.file_name", async () => {
+    const msg: Record<string, unknown> = {
+      message_id: 2,
+      date: 0,
+      chat: { id: 1, type: "private" },
+      document: { file_id: "d1", file_unique_id: "du1", file_name: "business-plan.docx" },
+    };
+    const getFile = vi.fn().mockResolvedValue({ file_path: "documents/file_99.docx" });
+    fetchRemoteMedia.mockResolvedValueOnce({
+      buffer: Buffer.from("doc"),
+      contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      fileName: null,
+    });
+    saveMediaBuffer.mockResolvedValueOnce({
+      path: "/tmp/business-plan---uuid.docx",
+      contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    });
+
+    const ctx: TelegramContext = {
+      message: msg as unknown as Message,
+      me: {
+        id: 1,
+        is_bot: true,
+        first_name: "bot",
+        username: "bot",
+      } as unknown as TelegramContext["me"],
+      getFile,
+    };
+
+    const result = await resolveMedia(ctx, MAX_MEDIA_BYTES, BOT_TOKEN);
+    expect(result).not.toBeNull();
+    // saveMediaBuffer should receive the original Telegram filename, not the server-side path
+    expect(saveMediaBuffer).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      "inbound",
+      MAX_MEDIA_BYTES,
+      "business-plan.docx",
+    );
+  });
+
+  it("preserves original audio filename from msg.audio.file_name", async () => {
+    const msg: Record<string, unknown> = {
+      message_id: 3,
+      date: 0,
+      chat: { id: 1, type: "private" },
+      audio: { file_id: "a2", duration: 120, file_unique_id: "au2", file_name: "podcast-ep42.mp3" },
+    };
+    const getFile = vi.fn().mockResolvedValue({ file_path: "music/file_55.mp3" });
+    fetchRemoteMedia.mockResolvedValueOnce({
+      buffer: Buffer.from("mp3"),
+      contentType: "audio/mpeg",
+      fileName: null,
+    });
+    saveMediaBuffer.mockResolvedValueOnce({
+      path: "/tmp/podcast-ep42---uuid.mp3",
+      contentType: "audio/mpeg",
+    });
+
+    const ctx: TelegramContext = {
+      message: msg as unknown as Message,
+      me: {
+        id: 1,
+        is_bot: true,
+        first_name: "bot",
+        username: "bot",
+      } as unknown as TelegramContext["me"],
+      getFile,
+    };
+
+    const result = await resolveMedia(ctx, MAX_MEDIA_BYTES, BOT_TOKEN);
+    expect(result).not.toBeNull();
+    expect(saveMediaBuffer).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      "inbound",
+      MAX_MEDIA_BYTES,
+      "podcast-ep42.mp3",
+    );
+  });
 });
