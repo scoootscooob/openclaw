@@ -107,6 +107,14 @@ describe("nostrPlugin", () => {
     it("has reasonable text chunk limit", () => {
       expect(nostrPlugin.outbound?.textChunkLimit).toBe(4000);
     });
+
+    it("has sendText function", () => {
+      expect(nostrPlugin.outbound?.sendText).toBeTypeOf("function");
+    });
+
+    it("has sendMedia function (required by delivery framework)", () => {
+      expect(nostrPlugin.outbound?.sendMedia).toBeTypeOf("function");
+    });
   });
 
   describe("pairing", () => {

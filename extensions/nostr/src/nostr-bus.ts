@@ -488,9 +488,11 @@ export async function startNostrBus(options: NostrBusOptions): Promise<NostrBusH
     }
   }
 
+  // subscribeMany expects a single Filter, not an array.  Wrapping it in an
+  // array produces [[{…}]] on the wire which relays reject with NOTICE.
   const sub = pool.subscribeMany(
     relays,
-    [{ kinds: [4], "#p": [pk], since }] as unknown as Parameters<typeof pool.subscribeMany>[1],
+    { kinds: [4], "#p": [pk], since } as unknown as Parameters<typeof pool.subscribeMany>[1],
     {
       onevent: handleEvent,
       oneose: () => {
