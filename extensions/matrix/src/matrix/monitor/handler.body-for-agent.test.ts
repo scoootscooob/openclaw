@@ -15,6 +15,9 @@ describe("createMatrixRoomMessageHandler BodyForAgent sender label", () => {
       .mockImplementation((ctx: Record<string, unknown>) => ctx);
 
     const core = {
+      config: {
+        loadConfig: vi.fn().mockReturnValue({}),
+      },
       channel: {
         pairing: {
           readAllowFromStore: vi.fn().mockResolvedValue([]),

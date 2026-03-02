@@ -7,6 +7,7 @@ import {
   formatAllowlistMatchMeta,
   logInboundDrop,
   logTypingFailure,
+  mergeAllowlist,
   resolveControlCommandGate,
   type PluginRuntime,
   type RuntimeEnv,
@@ -233,14 +234,23 @@ export function createMatrixRoomMessageHandler(params: MatrixMonitorHandlerParam
         senderId,
         senderUsername,
       });
-      const groupAllowFrom = cfg.channels?.matrix?.groupAllowFrom ?? [];
+      // Hot-reload: re-read allowlists from the live config so new entries added
+      // after startup take effect without a restart.  Display-name entries are only
+      // resolved at startup; hot-reloaded entries must be full Matrix IDs (@user:server).
+      const liveConfig = core.config.loadConfig() as CoreConfig;
+      const liveDmAllowFrom = (liveConfig.channels?.matrix?.dm?.allowFrom ?? []).map(String);
+      const effectiveDmAllowFrom = mergeAllowlist({
+        existing: allowFrom,
+        additions: liveDmAllowFrom,
+      });
+      const groupAllowFrom = (liveConfig.channels?.matrix?.groupAllowFrom ?? []).map(String);
       const { access, effectiveAllowFrom, effectiveGroupAllowFrom, groupAllowConfigured } =
         await resolveMatrixAccessState({
           isDirectMessage,
           resolvedAccountId,
           dmPolicy,
           groupPolicy,
-          allowFrom,
+          allowFrom: effectiveDmAllowFrom,
           groupAllowFrom,
           senderId,
           readStoreForDmPolicy: pairing.readStoreForDmPolicy,
