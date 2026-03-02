@@ -208,6 +208,29 @@ describe("runPreparedReply media-only handling", () => {
     expect(vi.mocked(runReplyAgent)).not.toHaveBeenCalled();
   });
 
+  it("allows webchat image-only sends via opts.images", async () => {
+    const result = await runPreparedReply(
+      baseParams({
+        ctx: {
+          Body: "",
+          RawBody: "",
+          CommandBody: "",
+        },
+        sessionCtx: {
+          Body: "",
+          BodyStripped: "",
+          Provider: "webchat",
+        },
+        opts: {
+          images: [{ type: "image", mimeType: "image/png", data: "iVBORw0KGgo=" }],
+        },
+      }),
+    );
+
+    expect(result).toEqual({ text: "ok" });
+    expect(vi.mocked(runReplyAgent)).toHaveBeenCalled();
+  });
+
   it("omits auth key labels from /new and /reset confirmation messages", async () => {
     await runPreparedReply(
       baseParams({
