@@ -161,7 +161,6 @@ export const nostrPlugin: ChannelPlugin<ResolvedNostrAccount> = {
     // as a text link (same pattern as IRC channel).
     sendMedia: async ({ to, text, mediaUrl, accountId }) => {
       const combined = mediaUrl ? `${text ?? ""}\n\nAttachment: ${mediaUrl}` : (text ?? "");
-      const core = getNostrRuntime();
       const aid = accountId ?? DEFAULT_ACCOUNT_ID;
       const bus = activeBuses.get(aid);
       if (!bus) {
