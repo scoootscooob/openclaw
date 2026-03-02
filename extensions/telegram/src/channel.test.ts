@@ -224,5 +224,10 @@ describe("telegramPlugin duplicate token guard", () => {
       }),
     );
     expect(result).toMatchObject({ channel: "telegram", messageId: "tg-1" });
+
+    // Media captions are raw markdown (not pre-rendered HTML by the chunker),
+    // so textMode must NOT be "html" to avoid parse-entity failures.
+    const opts = sendMessageTelegram.mock.calls[0]![2] as Record<string, unknown>;
+    expect(opts.textMode).toBeUndefined();
   });
 });

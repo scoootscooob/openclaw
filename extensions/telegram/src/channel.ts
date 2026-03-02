@@ -351,7 +351,6 @@ export const telegramPlugin: ChannelPlugin<ResolvedTelegramAccount, TelegramProb
       const messageThreadId = parseTelegramThreadId(threadId);
       const result = await send(to, text, {
         verbose: false,
-        textMode: "html",
         mediaUrl,
         mediaLocalRoots,
         messageThreadId,
