@@ -27,11 +27,14 @@ export type SignalMention = {
 export type SignalDataMessage = {
   timestamp?: number;
   message?: string | null;
+  expiresInSeconds?: number;
+  isExpirationUpdate?: boolean | null;
   attachments?: Array<SignalAttachment>;
   mentions?: Array<SignalMention> | null;
   groupInfo?: {
     groupId?: string | null;
     groupName?: string | null;
+    type?: string | null;
   } | null;
   quote?: { text?: string | null } | null;
   reaction?: SignalReactionMessage | null;

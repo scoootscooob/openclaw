@@ -447,6 +447,17 @@ export function createSignalEventHandler(deps: SignalEventHandlerDeps) {
     }
 
     const dataMessage = envelope.dataMessage ?? envelope.editMessage?.dataMessage;
+
+    // Skip group admin/settings messages (member additions, permission changes, etc.).
+    if (dataMessage?.groupInfo?.type === "UPDATE") {
+      return;
+    }
+
+    // Skip expiration timer update messages (disappearing messages setting changes).
+    if (dataMessage?.isExpirationUpdate) {
+      return;
+    }
+
     const reaction = deps.isSignalReactionMessage(envelope.reactionMessage)
       ? envelope.reactionMessage
       : deps.isSignalReactionMessage(dataMessage?.reaction)
