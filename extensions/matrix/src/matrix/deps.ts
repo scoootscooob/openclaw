@@ -5,11 +5,26 @@ import { fileURLToPath } from "node:url";
 import { runPluginCommandWithTimeout, type RuntimeEnv } from "openclaw/plugin-sdk";
 
 const MATRIX_SDK_PACKAGE = "@vector-im/matrix-bot-sdk";
+const CRYPTO_PACKAGE = "@matrix-org/matrix-sdk-crypto-nodejs";
 
 export function isMatrixSdkAvailable(): boolean {
   try {
     const req = createRequire(import.meta.url);
     req.resolve(MATRIX_SDK_PACKAGE);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Check whether the native crypto module can be loaded.
+ * Returns true if the platform binary is present, false otherwise.
+ */
+export function isCryptoNativeModuleAvailable(): boolean {
+  try {
+    const req = createRequire(import.meta.url);
+    req.resolve(CRYPTO_PACKAGE);
     return true;
   } catch {
     return false;
@@ -56,5 +71,42 @@ export async function ensureMatrixSdkInstalled(params: {
     throw new Error(
       "Matrix dependency install completed but @vector-im/matrix-bot-sdk is still missing.",
     );
+  }
+  // Ensure the native crypto binary is downloaded. The postinstall hook in
+  // package.json should handle this, but some environments suppress
+  // postinstall scripts (--ignore-scripts, restricted sandboxes, etc.).
+  await ensureCryptoNativeModule({ root, runtime: params.runtime });
+}
+
+/**
+ * Download the native crypto binary if it wasn't fetched during npm install.
+ * This is a best-effort fallback — encryption will degrade gracefully if
+ * the binary remains unavailable (see create-client.ts catch block).
+ */
+async function ensureCryptoNativeModule(params: {
+  root: string;
+  runtime: RuntimeEnv;
+}): Promise<void> {
+  if (isCryptoNativeModuleAvailable()) {
+    return;
+  }
+  const downloadScript = path.join(params.root, "node_modules", CRYPTO_PACKAGE, "download-lib.js");
+  if (!fs.existsSync(downloadScript)) {
+    return;
+  }
+  params.runtime.log?.(`matrix: downloading native crypto module (${CRYPTO_PACKAGE})…`);
+  try {
+    const result = await runPluginCommandWithTimeout({
+      argv: ["node", downloadScript],
+      cwd: params.root,
+      timeoutMs: 120_000,
+    });
+    if (result.code !== 0) {
+      params.runtime.log?.(
+        `matrix: native crypto download exited with code ${result.code}: ${result.stderr.trim()}`,
+      );
+    }
+  } catch {
+    // Best-effort: encryption will degrade gracefully.
   }
 }

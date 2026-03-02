@@ -3,6 +3,9 @@
   "version": "2026.3.2",
   "description": "OpenClaw Matrix channel plugin",
   "type": "module",
+  "scripts": {
+    "postinstall": "node -e \"try{require('child_process').execSync('node node_modules/@matrix-org/matrix-sdk-crypto-nodejs/download-lib.js',{stdio:'inherit'})}catch(e){}\""
+  },
   "dependencies": {
     "@matrix-org/matrix-sdk-crypto-nodejs": "^0.4.0",
     "@vector-im/matrix-bot-sdk": "0.8.0-element.3",
