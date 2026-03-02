@@ -34,7 +34,7 @@ export type SignalDataMessage = {
   groupInfo?: {
     groupId?: string | null;
     groupName?: string | null;
-    type?: "DELIVER" | "UPDATE" | (string & {}) | null;
+    type?: "UPDATE" | "DELIVER" | "QUIT" | "REQUEST_INFO" | (string & {}) | null;
   } | null;
   quote?: { text?: string | null } | null;
   reaction?: SignalReactionMessage | null;
