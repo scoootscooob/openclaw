@@ -80,6 +80,11 @@ export function shouldIncludeSkill(params: {
   if (skillConfig?.enabled === false) {
     return false;
   }
+  // Symmetric with `enabled: false` — force-include the skill even when
+  // its `requires.bins` check fails on the gateway host.  (#32752)
+  if (skillConfig?.enabled === true) {
+    return isBundledSkillAllowed(entry, allowBundled);
+  }
   if (!isBundledSkillAllowed(entry, allowBundled)) {
     return false;
   }
