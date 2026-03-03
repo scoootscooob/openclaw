@@ -5,6 +5,7 @@ import {
   addRoleDiscord,
   banMemberDiscord,
   createThreadDiscord,
+  fetchThreadInfoDiscord,
   listGuildEmojisDiscord,
   listThreadsDiscord,
   reactMessageDiscord,
@@ -516,5 +517,49 @@ describe("retry rate limits", () => {
 
     expect(res.messageId).toBe("msg1");
     expect(postMock).toHaveBeenCalledTimes(3);
+  });
+});
+
+describe("fetchThreadInfoDiscord", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("fetches thread metadata via GET /channels/:id", async () => {
+    const { rest, getMock } = makeDiscordRest();
+    const fakeThread = {
+      id: "thread-1",
+      type: ChannelType.PublicThread,
+      name: "my-thread",
+      parent_id: "chan-parent",
+      thread_metadata: {
+        archived: false,
+        auto_archive_duration: 1440,
+        locked: false,
+      },
+    };
+    getMock.mockResolvedValue(fakeThread);
+    const result = await fetchThreadInfoDiscord("thread-1", { rest, token: "t" });
+    expect(getMock).toHaveBeenCalledWith(Routes.channel("thread-1"));
+    expect(result).toEqual(fakeThread);
+  });
+
+  it("returns archived thread metadata", async () => {
+    const { rest, getMock } = makeDiscordRest();
+    const archivedThread = {
+      id: "thread-2",
+      type: ChannelType.PublicThread,
+      name: "closed-thread",
+      thread_metadata: {
+        archived: true,
+        auto_archive_duration: 60,
+        locked: true,
+      },
+    };
+    getMock.mockResolvedValue(archivedThread);
+    const result = await fetchThreadInfoDiscord("thread-2", { rest, token: "t" });
+    expect(result.thread_metadata).toEqual(
+      expect.objectContaining({ archived: true, locked: true }),
+    );
   });
 });

@@ -30,6 +30,7 @@ export {
   deleteMessageDiscord,
   editMessageDiscord,
   fetchMessageDiscord,
+  fetchThreadInfoDiscord,
   listPinsDiscord,
   listThreadsDiscord,
   pinMessageDiscord,

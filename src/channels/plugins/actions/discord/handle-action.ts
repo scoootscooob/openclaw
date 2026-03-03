@@ -245,6 +245,19 @@ export async function handleDiscordMessageAction(
     );
   }
 
+  if (action === "thread-info") {
+    const threadId = readStringParam(params, "threadId") ?? resolveChannelId();
+    return await handleDiscordAction(
+      {
+        action: "threadInfo",
+        accountId: accountId ?? undefined,
+        threadId,
+      },
+      cfg,
+      actionOptions,
+    );
+  }
+
   if (action === "sticker") {
     const stickerIds =
       readStringArrayParam(params, "stickerId", {

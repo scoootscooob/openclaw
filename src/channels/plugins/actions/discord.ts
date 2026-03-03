@@ -42,6 +42,7 @@ export const discordMessageActions: ChannelMessageActionAdapter = {
     }
     if (isEnabled("threads")) {
       actions.add("thread-create");
+      actions.add("thread-info");
       actions.add("thread-list");
       actions.add("thread-reply");
     }

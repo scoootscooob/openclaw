@@ -21,6 +21,7 @@ export const CHANNEL_MESSAGE_ACTION_NAMES = [
   "list-pins",
   "permissions",
   "thread-create",
+  "thread-info",
   "thread-list",
   "thread-reply",
   "search",

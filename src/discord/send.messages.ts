@@ -95,6 +95,14 @@ export async function listPinsDiscord(
   return (await rest.get(Routes.channelPins(channelId))) as APIMessage[];
 }
 
+export async function fetchThreadInfoDiscord(
+  threadId: string,
+  opts: DiscordReactOpts = {},
+): Promise<APIChannel> {
+  const rest = resolveDiscordRest(opts);
+  return (await rest.get(Routes.channel(threadId))) as APIChannel;
+}
+
 export async function createThreadDiscord(
   channelId: string,
   payload: DiscordThreadCreate,
