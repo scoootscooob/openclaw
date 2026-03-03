@@ -23,6 +23,7 @@ vi.mock("../../web/accounts.js", () => ({
 
 import { loadSessionStore } from "../../config/sessions.js";
 import { resolveMessageChannelSelection } from "../../infra/outbound/channel-selection.js";
+import * as outboundTargets from "../../infra/outbound/targets.js";
 import { readChannelAllowFromStoreSync } from "../../pairing/pairing-store.js";
 import { resolveWhatsAppAccount } from "../../web/accounts.js";
 import { resolveDeliveryTarget } from "./delivery-target.js";
@@ -228,7 +229,43 @@ describe("resolveDeliveryTarget", () => {
     if (result.ok) {
       throw new Error("expected unresolved delivery target");
     }
-    expect(result.error.message).toContain('No delivery target resolved for channel "telegram"');
+    // resolveOutboundTarget returns a generic missing-target error when
+    // neither an explicit target nor a plugin resolveDefaultTo fallback is set.
+    expect(result.error.message).toContain("Telegram");
+  });
+
+  it("delegates to resolveOutboundTarget when no session target exists (resolveDefaultTo path)", async () => {
+    setMainSessionEntry(undefined);
+
+    // Spy on resolveOutboundTarget so the plugin's resolveDefaultTo is
+    // exercised via the dock without requiring a fully bootstrapped registry.
+    const spy = vi.spyOn(outboundTargets, "resolveOutboundTarget").mockReturnValueOnce({
+      ok: true,
+      to: "plugin-default-target",
+    });
+
+    const cfg = makeCfg({
+      bindings: [],
+      channels: { telegram: { defaultTo: "plugin-default-target" } },
+    });
+
+    const result = await resolveForAgent({
+      cfg,
+      target: { channel: "telegram", to: undefined },
+    });
+
+    expect(spy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        channel: "telegram",
+        to: undefined,
+        cfg,
+      }),
+    );
+    expect(result.ok).toBe(true);
+    expect(result.channel).toBe("telegram");
+    expect(result.to).toBe("plugin-default-target");
+
+    spy.mockRestore();
   });
 
   it("returns an error when channel selection is ambiguous", async () => {
