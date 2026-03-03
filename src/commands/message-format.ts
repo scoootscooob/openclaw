@@ -293,6 +293,9 @@ export function formatMessageCliText(result: MessageActionRunResult): string[] {
   }
 
   if (result.kind === "send") {
+    if (result.handledBy === "hook-cancelled") {
+      return [muted("⛔ Message cancelled by message_sending hook.")];
+    }
     if (result.handledBy === "core" && result.sendResult) {
       const send = result.sendResult;
       if (send.via === "direct") {

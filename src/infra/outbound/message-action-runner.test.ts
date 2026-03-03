@@ -1081,3 +1081,144 @@ describe("runMessageAction accountId defaults", () => {
     expect(ctx.params.accountId).toBe("account-b");
   });
 });
+
+describe("message_sending hook for explicit message tool sends (#32621)", () => {
+  const handleAction = vi.fn(async ({ params }: { params: Record<string, unknown> }) =>
+    jsonResult({ ok: true, message: params.message }),
+  );
+
+  const testPlugin: ChannelPlugin = {
+    id: "hooktest",
+    meta: {
+      id: "hooktest",
+      label: "HookTest",
+      selectionLabel: "HookTest",
+      docsPath: "/channels/hooktest",
+      blurb: "Test channel plugin for hook testing.",
+    },
+    capabilities: { chatTypes: ["direct"] },
+    config: {
+      listAccountIds: () => ["default"],
+      resolveAccount: () => ({ enabled: true }),
+      isConfigured: () => true,
+    },
+    actions: {
+      listActions: () => ["send"],
+      supportsAction: ({ action }) => action === "send",
+      handleAction,
+    },
+  };
+
+  const cfg = {
+    channels: { hooktest: { enabled: true } },
+  } as OpenClawConfig;
+
+  let initHookRunner: typeof import("../../plugins/hook-runner-global.js").initializeGlobalHookRunner;
+  let resetHookRunner: typeof import("../../plugins/hook-runner-global.js").resetGlobalHookRunner;
+  let createMockRegistry: typeof import("../../plugins/hooks.test-helpers.js").createMockPluginRegistry;
+
+  beforeAll(async () => {
+    const hookGlobal = await import("../../plugins/hook-runner-global.js");
+    initHookRunner = hookGlobal.initializeGlobalHookRunner;
+    resetHookRunner = hookGlobal.resetGlobalHookRunner;
+    const helpers = await import("../../plugins/hooks.test-helpers.js");
+    createMockRegistry = helpers.createMockPluginRegistry;
+  });
+
+  beforeEach(() => {
+    setActivePluginRegistry(
+      createTestRegistry([{ pluginId: "hooktest", source: "test", plugin: testPlugin }]),
+    );
+    handleAction.mockClear();
+  });
+
+  afterEach(() => {
+    setActivePluginRegistry(createTestRegistry([]));
+    resetHookRunner();
+    vi.clearAllMocks();
+  });
+
+  it("fires message_sending hook before explicit send and allows content modification", async () => {
+    const hookHandler = vi.fn().mockReturnValue({ content: "modified by hook" });
+    const registry = createMockRegistry([{ hookName: "message_sending", handler: hookHandler }]);
+    initHookRunner(registry);
+
+    const result = await runMessageAction({
+      cfg,
+      action: "send",
+      params: { channel: "hooktest", target: "user:1", message: "original text" },
+      dryRun: false,
+    });
+
+    expect(result.kind).toBe("send");
+    expect(hookHandler).toHaveBeenCalledWith(
+      expect.objectContaining({ to: "user:1", content: "original text" }),
+      expect.objectContaining({ channelId: "hooktest" }),
+    );
+    // Plugin should receive the modified message.
+    expect(handleAction).toHaveBeenCalled();
+    const ctx = (
+      handleAction.mock.calls as unknown as Array<[{ params: Record<string, unknown> }]>
+    )[0]?.[0];
+    expect(ctx?.params.message).toBe("modified by hook");
+  });
+
+  it("cancels send when message_sending hook returns cancel: true", async () => {
+    const hookHandler = vi.fn().mockReturnValue({ cancel: true });
+    const registry = createMockRegistry([{ hookName: "message_sending", handler: hookHandler }]);
+    initHookRunner(registry);
+
+    const result = await runMessageAction({
+      cfg,
+      action: "send",
+      params: { channel: "hooktest", target: "user:1", message: "should be blocked" },
+      dryRun: false,
+    });
+
+    expect(result.kind).toBe("send");
+    if (result.kind !== "send") {
+      throw new Error("expected send");
+    }
+    expect(result.handledBy).toBe("hook-cancelled");
+    // Plugin should NOT have been called.
+    expect(handleAction).not.toHaveBeenCalled();
+  });
+
+  it("skips hook for dry-run sends", async () => {
+    const hookHandler = vi.fn().mockReturnValue({ cancel: true });
+    const registry = createMockRegistry([{ hookName: "message_sending", handler: hookHandler }]);
+    initHookRunner(registry);
+
+    const result = await runMessageAction({
+      cfg,
+      action: "send",
+      params: { channel: "hooktest", target: "user:1", message: "dry run" },
+      dryRun: true,
+    });
+
+    expect(result.kind).toBe("send");
+    // Hook should not fire during dry-run.
+    expect(hookHandler).not.toHaveBeenCalled();
+  });
+
+  it("proceeds normally when hook throws an error", async () => {
+    const hookHandler = vi.fn().mockRejectedValue(new Error("hook crash"));
+    const registry = createMockRegistry([{ hookName: "message_sending", handler: hookHandler }]);
+    initHookRunner(registry);
+
+    const result = await runMessageAction({
+      cfg,
+      action: "send",
+      params: { channel: "hooktest", target: "user:1", message: "resilient send" },
+      dryRun: false,
+    });
+
+    expect(result.kind).toBe("send");
+    // Send should succeed despite hook failure.
+    expect(handleAction).toHaveBeenCalled();
+    if (result.kind !== "send") {
+      throw new Error("expected send");
+    }
+    expect(result.handledBy).toBe("plugin");
+  });
+});
