@@ -641,7 +641,8 @@ export async function runCronIsolatedAgentTurn(params: {
       payload?.isError !== true &&
       (Boolean(payload?.text?.trim()) ||
         Boolean(payload?.mediaUrl) ||
-        (payload?.mediaUrls?.length ?? 0) > 0),
+        (payload?.mediaUrls?.length ?? 0) > 0 ||
+        Object.keys(payload?.channelData ?? {}).length > 0),
   );
   // Tool wrappers can emit transient error payloads (e.g. a failed write that is retried)
   // alongside successful payloads in the same run.  When (a) the run itself did not report

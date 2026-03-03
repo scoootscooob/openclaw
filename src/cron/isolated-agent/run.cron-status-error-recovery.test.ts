@@ -60,6 +60,24 @@ describe("runCronIsolatedAgentTurn — error payload recovery (#32244)", () => {
     expect(result.status).toBe("error");
   });
 
+  it("marks run as ok when non-error payload has channelData alongside an error payload", async () => {
+    // Slack Block Kit or other structured channel content should count as deliverable.
+    runWithModelFallbackMock.mockResolvedValue({
+      result: {
+        payloads: [
+          { channelData: { slack: { blocks: [{ type: "section" }] } } },
+          { text: "Write failed", isError: true },
+        ],
+        meta: { agentMeta: { usage: { input: 10, output: 20 } } },
+      },
+      provider: "openai",
+      model: "gpt-4",
+    });
+
+    const result = await runCronIsolatedAgentTurn(makeIsolatedAgentTurnParams());
+    expect(result.status).toBe("ok");
+  });
+
   it("marks run as error when run-level error exists even with non-error payloads", async () => {
     runWithModelFallbackMock.mockResolvedValue({
       result: {
