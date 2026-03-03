@@ -1157,6 +1157,54 @@ describe("normalizeOutboundPayloads", () => {
     ]);
     expect(normalized).toEqual([{ text: "final answer", mediaUrls: [] }]);
   });
+
+  describe("NO_REPLY safety net (#32403)", () => {
+    it("drops exact NO_REPLY payload", () => {
+      const normalized = normalizeOutboundPayloads([{ text: "NO_REPLY" }]);
+      expect(normalized).toEqual([]);
+    });
+
+    it("drops exact NO_REPLY with surrounding whitespace", () => {
+      const normalized = normalizeOutboundPayloads([{ text: "  NO_REPLY  " }]);
+      expect(normalized).toEqual([]);
+    });
+
+    it("strips trailing NO_REPLY from mixed content", () => {
+      const normalized = normalizeOutboundPayloads([{ text: "😄 NO_REPLY" }]);
+      expect(normalized).toEqual([{ text: "😄", mediaUrls: [] }]);
+    });
+
+    it("strips trailing NO_REPLY with leading text", () => {
+      const normalized = normalizeOutboundPayloads([
+        { text: "Got it, nothing to report NO_REPLY" },
+      ]);
+      expect(normalized).toEqual([{ text: "Got it, nothing to report", mediaUrls: [] }]);
+    });
+
+    it("drops payload when stripping NO_REPLY leaves empty text and no media", () => {
+      const normalized = normalizeOutboundPayloads([{ text: "NO_REPLY" }]);
+      expect(normalized).toEqual([]);
+    });
+
+    it("keeps media payload when text is NO_REPLY", () => {
+      const normalized = normalizeOutboundPayloads([
+        { text: "NO_REPLY", mediaUrl: "https://x.test/a.png" },
+      ]);
+      expect(normalized).toEqual([{ text: "", mediaUrls: ["https://x.test/a.png"] }]);
+    });
+
+    it("preserves valid text that does not contain NO_REPLY", () => {
+      const normalized = normalizeOutboundPayloads([{ text: "Hello, how can I help?" }]);
+      expect(normalized).toEqual([{ text: "Hello, how can I help?", mediaUrls: [] }]);
+    });
+
+    it("preserves text that contains NO_REPLY as substring of a word", () => {
+      // "NO_REPLY" only stripped at word boundaries — embedded tokens in
+      // longer words should not be touched.
+      const normalized = normalizeOutboundPayloads([{ text: "SNO_REPLY_MODE" }]);
+      expect(normalized).toEqual([{ text: "SNO_REPLY_MODE", mediaUrls: [] }]);
+    });
+  });
 });
 
 describe("formatOutboundPayloadLog", () => {

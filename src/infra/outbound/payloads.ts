@@ -3,6 +3,7 @@ import {
   isRenderablePayload,
   shouldSuppressReasoningPayload,
 } from "../../auto-reply/reply/reply-payloads.js";
+import { SILENT_REPLY_TOKEN, stripSilentToken } from "../../auto-reply/tokens.js";
 import type { ReplyPayload } from "../../auto-reply/types.js";
 
 export type NormalizedOutboundPayload = {
@@ -49,6 +50,14 @@ export function normalizeReplyPayloadsForDelivery(
       continue;
     }
     const parsed = parseReplyDirectives(payload.text ?? "");
+    // Safety net: strip trailing NO_REPLY from mixed content that may have
+    // slipped through higher-level normalization.  parseReplyDirectives only
+    // handles exact-match silence; mixed content like "😄 NO_REPLY" passes
+    // through with the token still embedded.  (#32403)
+    let text = parsed.text ?? "";
+    if (text && !parsed.isSilent && text.includes(SILENT_REPLY_TOKEN)) {
+      text = stripSilentToken(text);
+    }
     const explicitMediaUrls = payload.mediaUrls ?? parsed.mediaUrls;
     const explicitMediaUrl = payload.mediaUrl ?? parsed.mediaUrl;
     const mergedMedia = mergeMediaUrls(
@@ -59,7 +68,7 @@ export function normalizeReplyPayloadsForDelivery(
     const resolvedMediaUrl = hasMultipleMedia ? undefined : explicitMediaUrl;
     const next: ReplyPayload = {
       ...payload,
-      text: parsed.text ?? "",
+      text,
       mediaUrls: mergedMedia.length ? mergedMedia : undefined,
       mediaUrl: resolvedMediaUrl,
       replyToId: payload.replyToId ?? parsed.replyToId,
