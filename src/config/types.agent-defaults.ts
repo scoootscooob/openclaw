@@ -274,6 +274,12 @@ export type AgentDefaultsConfig = {
     runTimeoutSeconds?: number;
     /** Gateway timeout in ms for sub-agent announce delivery calls (default: 60000). */
     announceTimeoutMs?: number;
+    /**
+     * Completion message delivery mode for spawned sub-agents.
+     * - "user": send completion message directly to the user's channel (default).
+     * - "internal": only inject into the parent session (no external send).
+     */
+    completionDelivery?: "internal" | "user";
   };
   /** Optional sandbox settings for non-main sessions. */
   sandbox?: AgentSandboxConfig;

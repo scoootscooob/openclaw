@@ -18,6 +18,7 @@ import { AGENT_LANE_SUBAGENT } from "./lanes.js";
 import { resolveSubagentSpawnModelSelection } from "./model-selection.js";
 import { resolveSandboxRuntimeStatus } from "./sandbox/runtime-status.js";
 import { buildSubagentSystemPrompt } from "./subagent-announce.js";
+import { resolveExpectsCompletionMessage } from "./subagent-completion-delivery.js";
 import { getSubagentDepthFromSessionStore } from "./subagent-depth.js";
 import { countActiveRunsForSession, registerSubagentRun } from "./subagent-registry.js";
 import { readStringParam } from "./tools/common.js";
@@ -281,7 +282,6 @@ export async function spawnSubagentDirect(
       : params.cleanup === "keep" || params.cleanup === "delete"
         ? params.cleanup
         : "keep";
-  const expectsCompletionMessage = params.expectsCompletionMessage !== false;
   const requesterOrigin = normalizeDeliveryContext({
     channel: ctx.agentChannel,
     accountId: ctx.agentAccountId,
@@ -290,6 +290,14 @@ export async function spawnSubagentDirect(
   });
   const hookRunner = getGlobalHookRunner();
   const cfg = loadConfig();
+
+  // Resolve completion message delivery mode.
+  // Config-level completionDelivery ("internal" suppresses direct channel send)
+  // can be overridden by an explicit expectsCompletionMessage=false from the caller.
+  const expectsCompletionMessage = resolveExpectsCompletionMessage(
+    params.expectsCompletionMessage,
+    cfg?.agents?.defaults?.subagents?.completionDelivery,
+  );
 
   // When agent omits runTimeoutSeconds, use the config default.
   // Falls back to 0 (no timeout) if config key is also unset,
