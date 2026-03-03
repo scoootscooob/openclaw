@@ -41,7 +41,11 @@ export function subscribeEmbeddedPiSession(params: SubscribeEmbeddedPiSessionPar
     toolMetaById: new Map(),
     toolSummaryById: new Set(),
     lastToolError: undefined,
-    blockReplyBreak: params.blockReplyBreak ?? "text_end",
+    blockReplyBreak:
+      params.config?.agents?.defaults?.blockInterToolText === true
+        ? "message_end"
+        : (params.blockReplyBreak ?? "text_end"),
+    suppressInterToolText: params.config?.agents?.defaults?.blockInterToolText === true,
     reasoningMode,
     includeReasoning: reasoningMode === "on",
     shouldEmitPartialReplies: !(reasoningMode === "on" && !params.onBlockReply),

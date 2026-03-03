@@ -249,6 +249,28 @@ export function handleMessageUpdate(
   }
 }
 
+/**
+ * Detect whether an assistant message contains tool_use content blocks.
+ * Checks both the Anthropic `stop_reason` field and content block types
+ * for cross-provider compatibility.
+ */
+function messageHasToolUse(msg: AgentMessage): boolean {
+  const record = msg as Record<string, unknown>;
+  if (record.stop_reason === "tool_use") {
+    return true;
+  }
+  const content = record.content;
+  if (Array.isArray(content)) {
+    return content.some(
+      (block) =>
+        block &&
+        typeof block === "object" &&
+        (block as Record<string, unknown>).type === "tool_use",
+    );
+  }
+  return false;
+}
+
 export function handleMessageEnd(
   ctx: EmbeddedPiSubscribeContext,
   evt: AgentEvent & { message: AgentMessage },
@@ -300,6 +322,12 @@ export function handleMessageEnd(
     }
   }
 
+  // ── blockInterToolText suppression ──────────────────────────────────────────
+  // When enabled, suppress text from messages that also contain tool_use blocks.
+  // Only the final answer (a message without tool calls) is delivered.
+  const shouldSuppressInterTool =
+    ctx.state.suppressInterToolText && messageHasToolUse(assistantMessage);
+
   if (!ctx.state.emittedAssistantUpdate && (cleanedText || hasMedia)) {
     emitAgentEvent({
       runId: ctx.params.runId,
@@ -323,7 +351,16 @@ export function handleMessageEnd(
 
   const addedDuringMessage = ctx.state.assistantTexts.length > ctx.state.assistantTextBaseline;
   const chunkerHasBuffered = ctx.blockChunker?.hasBuffered() ?? false;
-  ctx.finalizeAssistantTexts({ text, addedDuringMessage, chunkerHasBuffered });
+
+  if (shouldSuppressInterTool) {
+    // Suppress inter-tool text: clear buffers without emitting, finalize with empty text.
+    // Text from this message will not appear in block replies or final payloads.
+    ctx.blockChunker?.reset();
+    ctx.state.blockBuffer = "";
+    ctx.finalizeAssistantTexts({ text: "", addedDuringMessage, chunkerHasBuffered: false });
+  } else {
+    ctx.finalizeAssistantTexts({ text, addedDuringMessage, chunkerHasBuffered });
+  }
 
   const onBlockReply = ctx.params.onBlockReply;
   const shouldEmitReasoning = Boolean(
@@ -373,7 +410,9 @@ export function handleMessageEnd(
     }
   };
 
+  // Skip block reply emission when suppressing inter-tool text.
   if (
+    !shouldSuppressInterTool &&
     (ctx.state.blockReplyBreak === "message_end" ||
       (ctx.blockChunker ? ctx.blockChunker.hasBuffered() : ctx.state.blockBuffer.length > 0)) &&
     text &&

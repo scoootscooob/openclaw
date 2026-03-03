@@ -38,6 +38,8 @@ export type EmbeddedPiSubscribeState = {
   lastToolError?: ToolErrorSummary;
 
   blockReplyBreak: "text_end" | "message_end";
+  /** When true, suppress text from messages that contain tool_use blocks. */
+  suppressInterToolText: boolean;
   reasoningMode: ReasoningLevel;
   includeReasoning: boolean;
   shouldEmitPartialReplies: boolean;

@@ -190,6 +190,16 @@ export type AgentDefaultsConfig = {
    * - "message_end": end of the whole assistant message (may include tool blocks)
    */
   blockStreamingBreak?: "text_end" | "message_end";
+  /**
+   * When enabled, suppress text blocks emitted from assistant messages that
+   * also contain tool-use calls. Only the final answer (a message without
+   * tool calls) is delivered. Requires block streaming to be enabled.
+   *
+   * Internally forces `blockStreamingBreak` to `"message_end"` so that text
+   * is buffered until the full message is received, at which point the
+   * handler can determine whether tool calls are present.
+   */
+  blockInterToolText?: boolean;
   /** Soft block chunking for streamed replies (min/max chars, prefer paragraph/newline). */
   blockStreamingChunk?: BlockStreamingChunkConfig;
   /**
