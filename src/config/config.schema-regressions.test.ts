@@ -184,4 +184,28 @@ describe("config schema regressions", () => {
 
     expect(res.ok).toBe(false);
   });
+
+  it("accepts agents.defaults.reasoningDefault", () => {
+    const res = validateConfigObject({
+      agents: {
+        defaults: {
+          reasoningDefault: "stream",
+        },
+      },
+    });
+
+    expect(res.ok).toBe(true);
+  });
+
+  it("rejects invalid agents.defaults.reasoningDefault value", () => {
+    const res = validateConfigObject({
+      agents: {
+        defaults: {
+          reasoningDefault: "always" as unknown,
+        },
+      },
+    });
+
+    expect(res.ok).toBe(false);
+  });
 });
