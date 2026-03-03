@@ -12,7 +12,10 @@ export const DEFAULT_TEMPORAL_DECAY_CONFIG: TemporalDecayConfig = {
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-const DATED_MEMORY_PATH_RE = /(?:^|\/)memory\/(\d{4})-(\d{2})-(\d{2})\.md$/;
+// Match a YYYY-MM-DD date anywhere in the basename so filenames like
+// `memory/2026-02-28-topic.md` and `memory/archive/2026-01-15.md` are
+// recognised as temporal rather than evergreen.  (#32745)
+const DATED_FILENAME_RE = /(\d{4})-(\d{2})-(\d{2})/;
 
 export function toDecayLambda(halfLifeDays: number): number {
   if (!Number.isFinite(halfLifeDays) || halfLifeDays <= 0) {
@@ -43,7 +46,8 @@ export function applyTemporalDecayToScore(params: {
 
 function parseMemoryDateFromPath(filePath: string): Date | null {
   const normalized = filePath.replaceAll("\\", "/").replace(/^\.\//, "");
-  const match = DATED_MEMORY_PATH_RE.exec(normalized);
+  const basename = path.basename(normalized, ".md");
+  const match = DATED_FILENAME_RE.exec(basename);
   if (!match) {
     return null;
   }
@@ -76,7 +80,16 @@ function isEvergreenMemoryPath(filePath: string): boolean {
   if (!normalized.startsWith("memory/")) {
     return false;
   }
-  return !DATED_MEMORY_PATH_RE.test(normalized);
+  // Files whose basename contains a date are temporal.
+  if (DATED_FILENAME_RE.test(path.basename(normalized, ".md"))) {
+    return false;
+  }
+  // Undated files in memory/reference/ are explicitly evergreen docs.
+  if (normalized.startsWith("memory/reference/")) {
+    return true;
+  }
+  // All other undated memory files fall through to mtime-based decay.
+  return false;
 }
 
 async function extractTimestamp(params: {

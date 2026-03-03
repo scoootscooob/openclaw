@@ -51,19 +51,19 @@ describe("temporal decay", () => {
     const dir = await makeTempDir();
 
     const rootMemoryPath = path.join(dir, "MEMORY.md");
-    const topicPath = path.join(dir, "memory", "projects.md");
-    await fs.mkdir(path.dirname(topicPath), { recursive: true });
+    const refPath = path.join(dir, "memory", "reference", "spec.md");
+    await fs.mkdir(path.dirname(refPath), { recursive: true });
     await fs.writeFile(rootMemoryPath, "evergreen");
-    await fs.writeFile(topicPath, "topic evergreen");
+    await fs.writeFile(refPath, "reference evergreen");
 
     const veryOld = new Date(Date.UTC(2010, 0, 1));
     await fs.utimes(rootMemoryPath, veryOld, veryOld);
-    await fs.utimes(topicPath, veryOld, veryOld);
+    await fs.utimes(refPath, veryOld, veryOld);
 
     const decayed = await applyTemporalDecayToHybridResults({
       results: [
         { path: "MEMORY.md", score: 1, source: "memory" },
-        { path: "memory/projects.md", score: 0.75, source: "memory" },
+        { path: "memory/reference/spec.md", score: 0.75, source: "memory" },
       ],
       workspaceDir: dir,
       temporalDecay: { enabled: true, halfLifeDays: 30 },
@@ -72,6 +72,63 @@ describe("temporal decay", () => {
 
     expect(decayed[0]?.score).toBeCloseTo(1);
     expect(decayed[1]?.score).toBeCloseTo(0.75);
+  });
+
+  it("decays undated memory topic files via mtime (#32745)", async () => {
+    const dir = await makeTempDir();
+
+    const topicPath = path.join(dir, "memory", "projects.md");
+    await fs.mkdir(path.dirname(topicPath), { recursive: true });
+    await fs.writeFile(topicPath, "topic content");
+
+    const thirtyDaysAgo = new Date(NOW_MS - 30 * DAY_MS);
+    await fs.utimes(topicPath, thirtyDaysAgo, thirtyDaysAgo);
+
+    const decayed = await applyTemporalDecayToHybridResults({
+      results: [{ path: "memory/projects.md", score: 1, source: "memory" }],
+      workspaceDir: dir,
+      temporalDecay: { enabled: true, halfLifeDays: 30 },
+      nowMs: NOW_MS,
+    });
+
+    // At exactly one half-life, score should be ~0.5
+    expect(decayed[0]?.score).toBeCloseTo(0.5, 2);
+  });
+
+  it("extracts dates from suffixed filenames (#32745)", async () => {
+    const merged = await mergeHybridResults({
+      vectorWeight: 1,
+      textWeight: 0,
+      temporalDecay: { enabled: true, halfLifeDays: 30 },
+      mmr: { enabled: false },
+      nowMs: NOW_MS,
+      vector: [
+        {
+          id: "suffixed",
+          path: "memory/2026-02-05-blog-ideas.md",
+          startLine: 1,
+          endLine: 1,
+          source: "memory",
+          snippet: "blog ideas",
+          vectorScore: 0.9,
+        },
+        {
+          id: "subdir",
+          path: "memory/archive/2026-01-10-meeting.md",
+          startLine: 1,
+          endLine: 1,
+          source: "memory",
+          snippet: "meeting notes",
+          vectorScore: 0.9,
+        },
+      ],
+      keyword: [],
+    });
+
+    // 5 days old — minor decay
+    expect(merged.find((e) => e.path.includes("blog-ideas"))?.score ?? 0).toBeGreaterThan(0.8);
+    // 31 days old — roughly half-life decay
+    expect(merged.find((e) => e.path.includes("meeting"))?.score ?? 0).toBeLessThan(0.55);
   });
 
   it("applies decay in hybrid merging before ranking", async () => {
