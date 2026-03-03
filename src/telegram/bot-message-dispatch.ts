@@ -698,6 +698,31 @@ export const dispatchTelegramMessage = async ({
   }
 
   if (!hasFinalResponse) {
+    // Silent turn (NO_REPLY): also remove the ack reaction so the user
+    // does not see a dangling 👀 on messages the agent chose to ignore (#32294).
+    if (statusReactionController) {
+      void statusReactionController.clear().catch((err) => {
+        logVerbose(`telegram: status reaction silent-clear failed: ${String(err)}`);
+      });
+    } else {
+      removeAckReactionAfterReply({
+        removeAfterReply: removeAckAfterReply,
+        ackReactionPromise,
+        ackReactionValue: ackReactionPromise ? "ack" : null,
+        remove: () => reactionApi?.(chatId, msg.message_id ?? 0, []) ?? Promise.resolve(),
+        onError: (err) => {
+          if (!msg.message_id) {
+            return;
+          }
+          logAckFailure({
+            log: logVerbose,
+            channel: "telegram",
+            target: `${chatId}/${msg.message_id}`,
+            error: err,
+          });
+        },
+      });
+    }
     clearGroupHistory();
     return;
   }
