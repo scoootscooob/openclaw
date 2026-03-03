@@ -46,6 +46,11 @@ export function applyTemporalDecayToScore(params: {
 
 function parseMemoryDateFromPath(filePath: string): Date | null {
   const normalized = filePath.replaceAll("\\", "/").replace(/^\.\//, "");
+  // Only extract dates from memory/ paths to avoid unintended matches on
+  // session files or other sources that rely on mtime-based decay.
+  if (!normalized.startsWith("memory/") && !normalized.startsWith("memory\\")) {
+    return null;
+  }
   const basename = path.basename(normalized, ".md");
   const match = DATED_FILENAME_RE.exec(basename);
   if (!match) {
