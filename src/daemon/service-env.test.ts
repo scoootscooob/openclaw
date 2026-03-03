@@ -1,6 +1,7 @@
+import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { resolveGatewayStateDir } from "./paths.js";
 import {
   buildMinimalServicePath,
@@ -8,9 +9,19 @@ import {
   buildServiceEnvironment,
   getMinimalServicePathParts,
   getMinimalServicePathPartsFromEnv,
+  resolveDarwinUserBinDirs,
+  resolveLinuxUserBinDirs,
 } from "./service-env.js";
 
 describe("getMinimalServicePathParts - Linux user directories", () => {
+  beforeEach(() => {
+    // Mock existsSync so candidate user dirs from fake HOME paths are treated as present.
+    vi.spyOn(fs, "existsSync").mockReturnValue(true);
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it("includes user bin directories when HOME is set on Linux", () => {
     const result = getMinimalServicePathParts({
       platform: "linux",
@@ -170,7 +181,95 @@ describe("getMinimalServicePathParts - Linux user directories", () => {
   });
 });
 
+describe("getMinimalServicePathParts - filters non-existent user dirs (#32448)", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("excludes user bin directories that do not exist on disk", () => {
+    // Only allow system dirs and ~/.local/bin to "exist".
+    vi.spyOn(fs, "existsSync").mockImplementation((p) => {
+      const s = String(p);
+      return s === "/home/testuser/.local/bin" || s.startsWith("/usr") || s === "/bin";
+    });
+
+    const result = getMinimalServicePathParts({
+      platform: "linux",
+      home: "/home/testuser",
+    });
+
+    // Existing dir should be included.
+    expect(result).toContain("/home/testuser/.local/bin");
+    // Non-existent dirs should be excluded.
+    expect(result).not.toContain("/home/testuser/.npm-global/bin");
+    expect(result).not.toContain("/home/testuser/.nvm/current/bin");
+    expect(result).not.toContain("/home/testuser/.fnm/current/bin");
+    // System dirs are never filtered.
+    expect(result).toContain("/usr/local/bin");
+    expect(result).toContain("/usr/bin");
+    expect(result).toContain("/bin");
+  });
+
+  it("excludes non-existent macOS user directories", () => {
+    vi.spyOn(fs, "existsSync").mockImplementation((p) => {
+      const s = String(p);
+      return (
+        s === "/Users/testuser/.local/bin" ||
+        s.startsWith("/opt") ||
+        s.startsWith("/usr") ||
+        s === "/bin"
+      );
+    });
+
+    const result = getMinimalServicePathParts({
+      platform: "darwin",
+      home: "/Users/testuser",
+    });
+
+    expect(result).toContain("/Users/testuser/.local/bin");
+    expect(result).not.toContain("/Users/testuser/.npm-global/bin");
+    expect(result).not.toContain("/Users/testuser/.volta/bin");
+    expect(result).toContain("/opt/homebrew/bin");
+  });
+
+  it("still includes extraDirs even if they do not exist", () => {
+    vi.spyOn(fs, "existsSync").mockReturnValue(false);
+
+    const result = getMinimalServicePathParts({
+      platform: "linux",
+      home: "/home/testuser",
+      extraDirs: ["/custom/bin"],
+    });
+
+    // Extra dirs are not filtered — only user candidate dirs are.
+    expect(result).toContain("/custom/bin");
+    // All user dirs should be excluded since existsSync returns false.
+    expect(result).not.toContain("/home/testuser/.local/bin");
+    expect(result).not.toContain("/home/testuser/.npm-global/bin");
+  });
+
+  it("resolution functions still return all candidates regardless of existence", () => {
+    // The resolution functions are pure: they don't check the filesystem.
+    const linuxDirs = resolveLinuxUserBinDirs("/home/testuser");
+    expect(linuxDirs).toContain("/home/testuser/.npm-global/bin");
+    expect(linuxDirs).toContain("/home/testuser/.nvm/current/bin");
+
+    const darwinDirs = resolveDarwinUserBinDirs("/Users/testuser");
+    expect(darwinDirs).toContain("/Users/testuser/.npm-global/bin");
+    expect(darwinDirs).toContain(
+      "/Users/testuser/Library/Application Support/fnm/aliases/default/bin",
+    );
+  });
+});
+
 describe("buildMinimalServicePath", () => {
+  beforeEach(() => {
+    vi.spyOn(fs, "existsSync").mockReturnValue(true);
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   const splitPath = (value: string, platform: NodeJS.Platform) =>
     value.split(platform === "win32" ? path.win32.delimiter : path.posix.delimiter);
 

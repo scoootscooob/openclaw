@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { VERSION } from "../version.js";
@@ -192,12 +193,17 @@ export function getMinimalServicePathParts(options: MinimalServicePathOptions = 
   const systemDirs = resolveSystemPathDirs(platform);
 
   // Add user bin directories for version managers (npm global, nvm, fnm, volta, etc.)
-  const userDirs =
+  // Filter out candidates that don't actually exist on the filesystem.  Hardcoded
+  // paths (e.g. ~/.npm-global/bin, ~/.nvm/current/bin) are speculative — including
+  // them when they don't exist adds stale entries to the service PATH and can mask
+  // "command not found" errors.  (#32448)
+  const userDirs = (
     platform === "linux"
       ? resolveLinuxUserBinDirs(options.home, options.env)
       : platform === "darwin"
         ? resolveDarwinUserBinDirs(options.home, options.env)
-        : [];
+        : []
+  ).filter((dir) => fs.existsSync(dir));
 
   const add = (dir: string) => {
     if (!dir) {
