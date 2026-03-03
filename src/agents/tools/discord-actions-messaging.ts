@@ -4,10 +4,10 @@ import { readDiscordComponentSpec } from "../../discord/components.js";
 import {
   createThreadDiscord,
   deleteMessageDiscord,
-  fetchThreadInfoDiscord,
   editMessageDiscord,
   fetchChannelPermissionsDiscord,
   fetchMessageDiscord,
+  fetchThreadInfoDiscord,
   fetchReactionsDiscord,
   listPinsDiscord,
   listThreadsDiscord,
