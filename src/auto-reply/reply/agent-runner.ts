@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import { lookupContextTokens } from "../../agents/context.js";
+import { resolveUserTimezone } from "../../agents/date-time.js";
 import { DEFAULT_CONTEXT_TOKENS } from "../../agents/defaults.js";
 import { resolveModelAuthMode } from "../../agents/model-auth.js";
 import { isCliProvider } from "../../agents/model-selection.js";
@@ -666,7 +667,7 @@ export async function runReplyAgent(params: {
       // Inject post-compaction workspace context for the next agent turn
       if (sessionKey) {
         const workspaceDir = process.cwd();
-        const userTimezone = cfg.agents?.defaults?.userTimezone;
+        const userTimezone = resolveUserTimezone(cfg.agents?.defaults?.userTimezone);
         readPostCompactionContext(workspaceDir, userTimezone)
           .then((contextContent) => {
             if (contextContent) {
