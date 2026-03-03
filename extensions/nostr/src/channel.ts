@@ -160,14 +160,21 @@ export const nostrPlugin: ChannelPlugin<ResolvedNostrAccount> = {
     // has no native media support, so fall back to sending the media URL
     // as a text link (same pattern as IRC channel).
     sendMedia: async ({ to, text, mediaUrl, accountId }) => {
+      const core = getNostrRuntime();
       const combined = mediaUrl ? `${text ?? ""}\n\nAttachment: ${mediaUrl}` : (text ?? "");
       const aid = accountId ?? DEFAULT_ACCOUNT_ID;
       const bus = activeBuses.get(aid);
       if (!bus) {
         throw new Error(`Nostr bus not running for account ${aid}`);
       }
+      const tableMode = core.channel.text.resolveMarkdownTableMode({
+        cfg: core.config.loadConfig(),
+        channel: "nostr",
+        accountId: aid,
+      });
+      const message = core.channel.text.convertMarkdownTables(combined, tableMode);
       const normalizedTo = normalizePubkey(to);
-      await bus.sendDm(normalizedTo, combined);
+      await bus.sendDm(normalizedTo, message);
       return {
         channel: "nostr" as const,
         to: normalizedTo,
