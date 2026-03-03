@@ -326,8 +326,6 @@ export const agentHandlers: GatewayRequestHandlers = {
     let bestEffortDeliver = requestedBestEffortDeliver ?? false;
     let cfgForAgent: ReturnType<typeof loadConfig> | undefined;
     let resolvedSessionKey = requestedSessionKey;
-    let skipTimestampInjection = false;
-
     const resetCommandMatch = message.match(RESET_COMMAND_RE);
     if (resetCommandMatch && requestedSessionKey) {
       const resetReason = resetCommandMatch[1]?.toLowerCase() === "new" ? "new" : "reset";
@@ -351,8 +349,10 @@ export const agentHandlers: GatewayRequestHandlers = {
       } else {
         // Keep bare /new and /reset behavior aligned with chat.send:
         // reset first, then run a fresh-session greeting prompt in-place.
+        // Do NOT skip timestamp injection — the agent needs the current date
+        // to resolve date-based paths (e.g. memory/YYYY-MM-DD.md) in its
+        // Session Startup sequence.  See: #32363
         message = BARE_SESSION_RESET_PROMPT;
-        skipTimestampInjection = true;
       }
     }
 
@@ -360,9 +360,7 @@ export const agentHandlers: GatewayRequestHandlers = {
     // Channel messages (Discord, Telegram, etc.) get timestamps via envelope
     // formatting in a separate code path — they never reach this handler.
     // See: https://github.com/moltbot/moltbot/issues/3658
-    if (!skipTimestampInjection) {
-      message = injectTimestamp(message, timestampOptsFromConfig(cfg));
-    }
+    message = injectTimestamp(message, timestampOptsFromConfig(cfg));
 
     if (requestedSessionKey) {
       const { cfg, storePath, entry, canonicalKey } = loadSessionEntry(requestedSessionKey);

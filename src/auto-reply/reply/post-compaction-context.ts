@@ -5,10 +5,40 @@ import { openBoundaryFile } from "../../infra/boundary-file-read.js";
 const MAX_CONTEXT_CHARS = 3000;
 
 /**
+ * Format the current date as YYYY-MM-DD in the given timezone (UTC fallback).
+ * Matches the pattern used in memory-flush.ts for consistency.
+ */
+function formatCurrentDateStamp(timezone?: string): string {
+  const now = new Date();
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: timezone || "UTC",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).formatToParts(now);
+    const year = parts.find((p) => p.type === "year")?.value;
+    const month = parts.find((p) => p.type === "month")?.value;
+    const day = parts.find((p) => p.type === "day")?.value;
+    if (year && month && day) {
+      return `${year}-${month}-${day}`;
+    }
+  } catch {
+    // Fall through to ISO fallback
+  }
+  return now.toISOString().slice(0, 10);
+}
+
+/**
  * Read critical sections from workspace AGENTS.md for post-compaction injection.
  * Returns formatted system event text, or null if no AGENTS.md or no relevant sections.
+ *
+ * @param timezone - Optional user timezone for YYYY-MM-DD substitution (defaults to UTC).
  */
-export async function readPostCompactionContext(workspaceDir: string): Promise<string | null> {
+export async function readPostCompactionContext(
+  workspaceDir: string,
+  timezone?: string,
+): Promise<string | null> {
   const agentsPath = path.join(workspaceDir, "AGENTS.md");
 
   try {
@@ -36,7 +66,11 @@ export async function readPostCompactionContext(workspaceDir: string): Promise<s
       return null;
     }
 
-    const combined = sections.join("\n\n");
+    // Substitute literal YYYY-MM-DD placeholders with the actual date so agents
+    // can resolve date-based file paths (e.g. memory/YYYY-MM-DD.md) after compaction.
+    // This mirrors the substitution already performed in memory-flush.ts.
+    const dateStamp = formatCurrentDateStamp(timezone);
+    const combined = sections.join("\n\n").replaceAll("YYYY-MM-DD", dateStamp);
     const safeContent =
       combined.length > MAX_CONTEXT_CHARS
         ? combined.slice(0, MAX_CONTEXT_CHARS) + "\n...[truncated]..."

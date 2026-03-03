@@ -167,6 +167,36 @@ Never do Y.
     expect(result).not.toContain("Other Section");
   });
 
+  it("substitutes literal YYYY-MM-DD with the current date", async () => {
+    const content = `# Rules
+
+## Session Startup
+
+Read memory/YYYY-MM-DD.md before responding.
+
+## Other
+`;
+    fs.writeFileSync(path.join(tmpDir, "AGENTS.md"), content);
+    const result = await readPostCompactionContext(tmpDir);
+    expect(result).not.toBeNull();
+    // Should NOT contain the literal placeholder
+    expect(result).not.toContain("YYYY-MM-DD");
+    // Should contain an actual date like 2026-03-02
+    expect(result).toMatch(/memory\/\d{4}-\d{2}-\d{2}\.md/);
+  });
+
+  it("substitutes YYYY-MM-DD using the provided timezone", async () => {
+    const content = `## Session Startup
+
+Today is YYYY-MM-DD.
+`;
+    fs.writeFileSync(path.join(tmpDir, "AGENTS.md"), content);
+    const result = await readPostCompactionContext(tmpDir, "America/New_York");
+    expect(result).not.toBeNull();
+    expect(result).not.toContain("YYYY-MM-DD");
+    expect(result).toMatch(/Today is \d{4}-\d{2}-\d{2}/);
+  });
+
   it.runIf(process.platform !== "win32")(
     "returns null when AGENTS.md is a symlink escaping workspace",
     async () => {
