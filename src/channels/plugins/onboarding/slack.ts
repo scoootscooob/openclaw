@@ -1,3 +1,4 @@
+import { listNativeCommandSpecs } from "../../../auto-reply/commands-registry.js";
 import type { OpenClawConfig } from "../../../config/config.js";
 import { hasConfiguredSecretInput } from "../../../config/types.secrets.js";
 import { DEFAULT_ACCOUNT_ID } from "../../../routing/session-key.js";
@@ -28,8 +29,22 @@ import {
 
 const channel = "slack" as const;
 
-function buildSlackManifest(botName: string) {
+/** @internal Exported for testing only. */
+export function buildSlackManifest(botName: string) {
   const safeName = botName.trim() || "OpenClaw";
+  const nativeSpecs = listNativeCommandSpecs({ provider: "slack" });
+  const slashCommands = [
+    {
+      command: "/openclaw",
+      description: "Send a message to OpenClaw",
+      should_escape: false,
+    },
+    ...nativeSpecs.map((spec) => ({
+      command: `/${spec.name}`,
+      description: spec.description,
+      should_escape: false,
+    })),
+  ];
   const manifest = {
     display_information: {
       name: safeName,
@@ -44,13 +59,7 @@ function buildSlackManifest(botName: string) {
         messages_tab_enabled: true,
         messages_tab_read_only_enabled: false,
       },
-      slash_commands: [
-        {
-          command: "/openclaw",
-          description: "Send a message to OpenClaw",
-          should_escape: false,
-        },
-      ],
+      slash_commands: slashCommands,
     },
     oauth_config: {
       scopes: {
