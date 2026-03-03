@@ -50,6 +50,51 @@ type CacheRetentionStreamOptions = Partial<SimpleStreamOptions> & {
 };
 
 /**
+ * Sampling parameter names that can be forwarded to the API via onPayload.
+ * These are not part of pi-ai's SimpleStreamOptions, so they must be injected
+ * directly into the request body using the onPayload callback.
+ *
+ * Accepts both camelCase (config convention) and snake_case (API convention).
+ * Snake_case is what ends up in the payload; camelCase is normalised on read.
+ */
+const SAMPLING_PARAM_ALIASES: Record<string, string> = {
+  frequency_penalty: "frequency_penalty",
+  frequencyPenalty: "frequency_penalty",
+  presence_penalty: "presence_penalty",
+  presencePenalty: "presence_penalty",
+  repetition_penalty: "repetition_penalty",
+  repetitionPenalty: "repetition_penalty",
+  top_p: "top_p",
+  topP: "top_p",
+  top_k: "top_k",
+  topK: "top_k",
+};
+
+/**
+ * Collect sampling parameters (frequency_penalty, presence_penalty, top_p,
+ * top_k, repetition_penalty) from extraParams. Returns a map of snake_case
+ * API field names to numeric values, or undefined when none are set.
+ *
+ * @internal Exported for testing only
+ */
+export function collectSamplingParams(
+  extraParams: Record<string, unknown> | undefined,
+): Record<string, number> | undefined {
+  if (!extraParams) {
+    return undefined;
+  }
+  let result: Record<string, number> | undefined;
+  for (const [configKey, apiKey] of Object.entries(SAMPLING_PARAM_ALIASES)) {
+    const value = extraParams[configKey];
+    if (typeof value === "number" && Number.isFinite(value)) {
+      result ??= {};
+      result[apiKey] = value;
+    }
+  }
+  return result;
+}
+
+/**
  * Resolve cacheRetention from extraParams, supporting both new `cacheRetention`
  * and legacy `cacheControlTtl` values for backwards compatibility.
  *
@@ -146,13 +191,20 @@ function createStreamFnWithExtraParams(
       ? (extraParams.provider as Record<string, unknown>)
       : undefined;
 
-  if (Object.keys(streamParams).length === 0 && !providerRouting) {
+  // Collect sampling parameters that are not part of SimpleStreamOptions.
+  // These are injected directly into the API request body via onPayload.
+  const samplingParams = collectSamplingParams(extraParams);
+
+  if (Object.keys(streamParams).length === 0 && !providerRouting && !samplingParams) {
     return undefined;
   }
 
   log.debug(`creating streamFn wrapper with params: ${JSON.stringify(streamParams)}`);
   if (providerRouting) {
     log.debug(`OpenRouter provider routing: ${JSON.stringify(providerRouting)}`);
+  }
+  if (samplingParams) {
+    log.debug(`sampling params: ${JSON.stringify(samplingParams)}`);
   }
 
   const underlying = baseStreamFn ?? streamSimple;
@@ -165,10 +217,31 @@ function createStreamFnWithExtraParams(
           compat: { ...model.compat, openRouterRouting: providerRouting },
         } as unknown as typeof model)
       : model;
-    return underlying(effectiveModel, context, {
-      ...streamParams,
-      ...options,
-    });
+
+    // When sampling parameters are configured, inject them into the API
+    // request body via onPayload. pi-ai does not expose these in
+    // SimpleStreamOptions, so we write them directly into the payload
+    // object that the provider sends to the API.
+    const mergedOptions = samplingParams
+      ? {
+          ...streamParams,
+          ...options,
+          onPayload: (payload: unknown) => {
+            if (payload && typeof payload === "object") {
+              const payloadObj = payload as Record<string, unknown>;
+              for (const [key, value] of Object.entries(samplingParams)) {
+                payloadObj[key] = value;
+              }
+            }
+            options?.onPayload?.(payload);
+          },
+        }
+      : {
+          ...streamParams,
+          ...options,
+        };
+
+    return underlying(effectiveModel, context, mergedOptions);
   };
 
   return wrappedStreamFn;
