@@ -49,6 +49,8 @@ export function resolveFailoverStatus(reason: FailoverReason): number | undefine
       return 402;
     case "rate_limit":
       return 429;
+    case "overloaded":
+      return 529;
     case "auth":
       return 401;
     case "auth_permanent":
@@ -172,7 +174,7 @@ export function resolveFailoverReasonFromError(err: unknown): FailoverReason | n
     return "timeout";
   }
   if (status === 529) {
-    return "rate_limit";
+    return "overloaded";
   }
   if (status === 400) {
     return "format";

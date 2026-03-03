@@ -7,6 +7,7 @@ const FAILURE_REASON_PRIORITY: AuthProfileFailureReason[] = [
   "auth_permanent",
   "auth",
   "billing",
+  "overloaded",
   "format",
   "model_not_found",
   "timeout",

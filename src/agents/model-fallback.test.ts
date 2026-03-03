@@ -509,6 +509,18 @@ describe("runWithModelFallback", () => {
     });
   });
 
+  it("skips overloaded providers and escalates to fallback", async () => {
+    const now = Date.now();
+    await expectSkippedUnavailableProvider({
+      providerPrefix: "overloaded-test",
+      usageStat: {
+        cooldownUntil: now + 5 * 60_000,
+        failureCounts: { overloaded: 2 },
+      },
+      expectedReason: "overloaded",
+    });
+  });
+
   it("does not skip when any profile is available", async () => {
     const provider = `cooldown-mixed-${crypto.randomUUID()}`;
     const profileA = `${provider}:a`;

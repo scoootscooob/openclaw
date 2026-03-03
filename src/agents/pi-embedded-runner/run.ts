@@ -1055,9 +1055,12 @@ export async function runEmbeddedPiAgent(
               profileId: lastProfileId,
               reason: promptFailoverReason,
             });
+            // Overloaded errors are provider-wide (not profile-specific); skip
+            // profile rotation and escalate to fallback providers immediately.
             if (
               isFailoverErrorMessage(errorText) &&
               promptFailoverReason !== "timeout" &&
+              promptFailoverReason !== "overloaded" &&
               (await advanceAuthProfile())
             ) {
               continue;
@@ -1164,9 +1167,13 @@ export async function runEmbeddedPiAgent(
               }
             }
 
-            const rotated = await advanceAuthProfile();
-            if (rotated) {
-              continue;
+            // Overloaded errors are provider-wide; skip profile rotation and
+            // escalate to fallback providers immediately.
+            if (assistantFailoverReason !== "overloaded") {
+              const rotated = await advanceAuthProfile();
+              if (rotated) {
+                continue;
+              }
             }
 
             if (fallbackConfigured) {
