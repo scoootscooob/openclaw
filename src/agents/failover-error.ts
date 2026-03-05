@@ -173,7 +173,7 @@ export function resolveFailoverReasonFromError(err: unknown): FailoverReason | n
   if (status === 408) {
     return "timeout";
   }
-  if (status === 502 || status === 503 || status === 504) {
+  if (status === 500 || status === 502 || status === 503 || status === 504) {
     return "timeout";
   }
   if (status === 400) {
@@ -181,7 +181,17 @@ export function resolveFailoverReasonFromError(err: unknown): FailoverReason | n
   }
 
   const code = (getErrorCode(err) ?? "").toUpperCase();
-  if (["ETIMEDOUT", "ESOCKETTIMEDOUT", "ECONNRESET", "ECONNABORTED"].includes(code)) {
+  if (
+    [
+      "ETIMEDOUT",
+      "ESOCKETTIMEDOUT",
+      "ECONNRESET",
+      "ECONNABORTED",
+      "ECONNREFUSED",
+      "EHOSTUNREACH",
+      "ENETUNREACH",
+    ].includes(code)
+  ) {
     return "timeout";
   }
   if (isTimeoutError(err)) {
