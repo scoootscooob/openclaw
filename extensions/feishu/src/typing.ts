@@ -1,6 +1,15 @@
 import type { ClawdbotConfig } from "openclaw/plugin-sdk";
 import { resolveFeishuAccount } from "./accounts.js";
 import { createFeishuClient } from "./client.js";
+import { getFeishuRuntime } from "./runtime.js";
+
+function logTypingDebug(message: string): void {
+  try {
+    getFeishuRuntime().logging.getChildLogger({ module: "feishu-typing" }).debug?.(message);
+  } catch {
+    // Fallback when runtime logging is unavailable (e.g. during tests).
+  }
+}
 
 // Feishu emoji types for typing indicator
 // See: https://open.feishu.cn/document/server-docs/im-v1/message-reaction/emojis-introduce
@@ -41,7 +50,7 @@ export async function addTypingIndicator(params: {
     return { messageId, reactionId };
   } catch (err) {
     // Silently fail - typing indicator is not critical
-    console.log(`[feishu] failed to add typing indicator: ${err}`);
+    logTypingDebug(`failed to add typing indicator: ${err}`);
     return { messageId, reactionId: null };
   }
 }
@@ -75,6 +84,6 @@ export async function removeTypingIndicator(params: {
     });
   } catch (err) {
     // Silently fail - cleanup is not critical
-    console.log(`[feishu] failed to remove typing indicator: ${err}`);
+    logTypingDebug(`failed to remove typing indicator: ${err}`);
   }
 }
