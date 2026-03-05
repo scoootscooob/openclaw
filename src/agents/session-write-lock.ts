@@ -1,8 +1,11 @@
 import fsSync from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { createSubsystemLogger } from "../logging/subsystem.js";
 import { isPidAlive } from "../shared/pid-alive.js";
 import { resolveProcessScopedMap } from "../shared/process-scoped-map.js";
+
+const log = createSubsystemLogger("session-write-lock");
 
 type LockFilePayload = {
   pid?: number;
@@ -192,10 +195,7 @@ async function runLockWatchdogCheck(nowMs = Date.now()): Promise<number> {
       continue;
     }
 
-    // eslint-disable-next-line no-console
-    console.warn(
-      `[session-write-lock] releasing lock held for ${heldForMs}ms (max=${held.maxHoldMs}ms): ${held.lockPath}`,
-    );
+    log.warn(`releasing lock held for ${heldForMs}ms (max=${held.maxHoldMs}ms): ${held.lockPath}`);
 
     const didRelease = await releaseHeldLock(sessionFile, held, { force: true });
     if (didRelease) {
