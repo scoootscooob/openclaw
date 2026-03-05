@@ -1,10 +1,14 @@
 import { describe, it, expect } from "vitest";
-import { parseFeishuMessageEvent } from "./bot.js";
+import { parseFeishuMessageEvent, isBotMentionById } from "./bot.js";
 
 // Helper to build a minimal FeishuMessageEvent for testing
 function makeEvent(
   chatType: "p2p" | "group" | "private",
-  mentions?: Array<{ key: string; name: string; id: { open_id?: string } }>,
+  mentions?: Array<{
+    key: string;
+    name: string;
+    id: { open_id?: string; user_id?: string; union_id?: string };
+  }>,
   text = "hello",
 ) {
   return {
@@ -181,5 +185,67 @@ describe("parseFeishuMessageEvent – mentionedBot", () => {
     });
     const ctx = parseFeishuMessageEvent(event as any, "ou_bot_123");
     expect(ctx.content).toBe("[Forwarded message: sc_abc123]");
+  });
+
+  // --- Regression tests for #34271: display-name alias mismatch ---
+
+  it("returns mentionedBot=true even when display name differs from configured name (#34271)", () => {
+    const event = makeEvent("group", [
+      { key: "@_user_1", name: "BotName（别名）", id: { open_id: BOT_OPEN_ID } },
+    ]);
+    const ctx = parseFeishuMessageEvent(event as any, BOT_OPEN_ID);
+    expect(ctx.mentionedBot).toBe(true);
+  });
+
+  it("returns mentionedBot=true when mention has empty name but matching open_id", () => {
+    const event = makeEvent("group", [{ key: "@_user_1", name: "", id: { open_id: BOT_OPEN_ID } }]);
+    const ctx = parseFeishuMessageEvent(event as any, BOT_OPEN_ID);
+    expect(ctx.mentionedBot).toBe(true);
+  });
+
+  it("returns mentionedBot=true when user_id matches bot open_id (id remapping)", () => {
+    const event = makeEvent("group", [
+      { key: "@_user_1", name: "Bot", id: { open_id: "ou_remapped", user_id: BOT_OPEN_ID } },
+    ]);
+    const ctx = parseFeishuMessageEvent(event as any, BOT_OPEN_ID);
+    expect(ctx.mentionedBot).toBe(true);
+  });
+
+  it("returns mentionedBot=true when union_id matches bot open_id", () => {
+    const event = makeEvent("group", [
+      {
+        key: "@_user_1",
+        name: "Bot",
+        id: { open_id: "ou_remapped", union_id: BOT_OPEN_ID },
+      },
+    ]);
+    const ctx = parseFeishuMessageEvent(event as any, BOT_OPEN_ID);
+    expect(ctx.mentionedBot).toBe(true);
+  });
+});
+
+describe("isBotMentionById", () => {
+  it("matches on open_id", () => {
+    expect(isBotMentionById({ open_id: "bot1" }, "bot1")).toBe(true);
+  });
+
+  it("matches on user_id when open_id differs", () => {
+    expect(isBotMentionById({ open_id: "other", user_id: "bot1" }, "bot1")).toBe(true);
+  });
+
+  it("matches on union_id when other IDs differ", () => {
+    expect(isBotMentionById({ open_id: "a", user_id: "b", union_id: "bot1" }, "bot1")).toBe(true);
+  });
+
+  it("returns false when no IDs match", () => {
+    expect(isBotMentionById({ open_id: "a", user_id: "b", union_id: "c" }, "bot1")).toBe(false);
+  });
+
+  it("returns false for empty ID fields", () => {
+    expect(isBotMentionById({}, "bot1")).toBe(false);
+  });
+
+  it("does not match undefined fields against each other", () => {
+    expect(isBotMentionById({ open_id: undefined }, "bot1")).toBe(false);
   });
 });
