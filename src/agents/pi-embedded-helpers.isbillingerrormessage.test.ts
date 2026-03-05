@@ -527,4 +527,14 @@ describe("classifyFailoverReason", () => {
       ),
     ).toBe("timeout");
   });
+  it("classifies JSON server_error internal server failures as timeout", () => {
+    expect(
+      classifyFailoverReason('{"error":{"type":"server_error","message":"Internal server error"}}'),
+    ).toBe("timeout");
+    expect(
+      classifyFailoverReason(
+        '{"error":{"type":"internal_server_error","message":"Internal server error"}}',
+      ),
+    ).toBe("timeout");
+  });
 });
