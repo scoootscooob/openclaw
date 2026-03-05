@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import { normalizeAgentId } from "../../routing/session-key.js";
 import { parseAbsoluteTimeMs } from "../parse.js";
-import { computeNextRunAtMs } from "../schedule.js";
+import { coerceFiniteScheduleNumber, computeNextRunAtMs } from "../schedule.js";
 import {
   normalizeCronStaggerMs,
   resolveCronStaggerMs,
@@ -88,9 +88,9 @@ function resolveEveryAnchorMs(params: {
   schedule: { everyMs: number; anchorMs?: number };
   fallbackAnchorMs: number;
 }) {
-  const raw = params.schedule.anchorMs;
-  if (isFiniteTimestamp(raw)) {
-    return Math.max(0, Math.floor(raw));
+  const coerced = coerceFiniteScheduleNumber(params.schedule.anchorMs);
+  if (coerced !== undefined) {
+    return Math.max(0, Math.floor(coerced));
   }
   if (isFiniteTimestamp(params.fallbackAnchorMs)) {
     return Math.max(0, Math.floor(params.fallbackAnchorMs));
@@ -201,7 +201,11 @@ export function computeJobNextRunAtMs(job: CronJob, nowMs: number): number | und
     return undefined;
   }
   if (job.schedule.kind === "every") {
-    const everyMs = Math.max(1, Math.floor(job.schedule.everyMs));
+    const everyMsRaw = coerceFiniteScheduleNumber(job.schedule.everyMs);
+    if (everyMsRaw === undefined) {
+      return undefined;
+    }
+    const everyMs = Math.max(1, Math.floor(everyMsRaw));
     const lastRunAtMs = job.state.lastRunAtMs;
     if (typeof lastRunAtMs === "number" && Number.isFinite(lastRunAtMs)) {
       const nextFromLastRun = Math.floor(lastRunAtMs) + everyMs;
