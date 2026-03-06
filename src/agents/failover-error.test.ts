@@ -19,6 +19,12 @@ describe("failover-error", () => {
     expect(resolveFailoverReasonFromError({ status: 502 })).toBe("timeout");
     expect(resolveFailoverReasonFromError({ status: 503 })).toBe("timeout");
     expect(resolveFailoverReasonFromError({ status: 504 })).toBe("timeout");
+    // Cloudflare-specific transient errors should also trigger failover as timeout.
+    expect(resolveFailoverReasonFromError({ status: 521 })).toBe("timeout");
+    expect(resolveFailoverReasonFromError({ status: 522 })).toBe("timeout");
+    expect(resolveFailoverReasonFromError({ status: 523 })).toBe("timeout");
+    expect(resolveFailoverReasonFromError({ status: 524 })).toBe("timeout");
+    expect(resolveFailoverReasonFromError({ status: 529 })).toBe("timeout");
   });
 
   it("infers format errors from error messages", () => {
