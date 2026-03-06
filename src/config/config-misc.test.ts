@@ -258,10 +258,7 @@ describe("model compat config schema", () => {
 
 describe("config paths", () => {
   it("rejects empty and blocked paths", () => {
-    expect(parseConfigPath("")).toEqual({
-      ok: false,
-      error: "Invalid path. Use dot notation (e.g. foo.bar).",
-    });
+    expect(parseConfigPath("").ok).toBe(false);
     expect(parseConfigPath("__proto__.polluted").ok).toBe(false);
     expect(parseConfigPath("constructor.polluted").ok).toBe(false);
     expect(parseConfigPath("prototype.polluted").ok).toBe(false);
@@ -275,6 +272,61 @@ describe("config paths", () => {
     }
     setConfigValueAtPath(root, parsed.path, 123);
     expect(getConfigValueAtPath(root, parsed.path)).toBe(123);
+    expect(unsetConfigValueAtPath(root, parsed.path)).toBe(true);
+    expect(getConfigValueAtPath(root, parsed.path)).toBeUndefined();
+  });
+
+  it("supports bracket notation for keys with periods", () => {
+    const parsed = parseConfigPath('models.providers["llama.cpp"].baseUrl');
+    expect(parsed.ok).toBe(true);
+    expect(parsed.path).toEqual(["models", "providers", "llama.cpp", "baseUrl"]);
+  });
+
+  it("supports single-quoted bracket notation", () => {
+    const parsed = parseConfigPath("models.providers['vllm.ai'].apiKey");
+    expect(parsed.ok).toBe(true);
+    expect(parsed.path).toEqual(["models", "providers", "vllm.ai", "apiKey"]);
+  });
+
+  it("handles bracket notation at the start of a path", () => {
+    const parsed = parseConfigPath('["top.level"].child');
+    expect(parsed.ok).toBe(true);
+    expect(parsed.path).toEqual(["top.level", "child"]);
+  });
+
+  it("handles bracket notation at the end of a path", () => {
+    const parsed = parseConfigPath('parent["leaf.key"]');
+    expect(parsed.ok).toBe(true);
+    expect(parsed.path).toEqual(["parent", "leaf.key"]);
+  });
+
+  it("rejects bracket notation without quotes", () => {
+    expect(parseConfigPath("foo[bar]").ok).toBe(false);
+  });
+
+  it("rejects unterminated bracket notation", () => {
+    expect(parseConfigPath('foo["bar').ok).toBe(false);
+  });
+
+  it("rejects empty bracket key", () => {
+    expect(parseConfigPath('foo[""]').ok).toBe(false);
+  });
+
+  it("rejects blocked keys inside brackets", () => {
+    expect(parseConfigPath('foo["__proto__"]').ok).toBe(false);
+  });
+
+  it("round-trips bracket-notated paths through set/get/unset", () => {
+    const root: Record<string, unknown> = {};
+    const parsed = parseConfigPath('models.providers["llama.cpp"].baseUrl');
+    if (!parsed.ok || !parsed.path) {
+      throw new Error("path parse failed");
+    }
+    setConfigValueAtPath(root, parsed.path, "http://localhost:8080");
+    expect(getConfigValueAtPath(root, parsed.path)).toBe("http://localhost:8080");
+    const inner = (root as Record<string, Record<string, Record<string, unknown>>>).models
+      ?.providers?.["llama.cpp"];
+    expect(inner?.baseUrl).toBe("http://localhost:8080");
     expect(unsetConfigValueAtPath(root, parsed.path)).toBe(true);
     expect(getConfigValueAtPath(root, parsed.path)).toBeUndefined();
   });

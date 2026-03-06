@@ -3,6 +3,15 @@ import { isBlockedObjectKey } from "./prototype-keys.js";
 
 type PathNode = Record<string, unknown>;
 
+/**
+ * Parse a config path string into an array of key segments.
+ *
+ * Supports dot notation (`foo.bar`) and bracket notation for keys that
+ * contain periods or other special characters:
+ *   `models.providers["llama.cpp"].baseUrl`  →  ["models", "providers", "llama.cpp", "baseUrl"]
+ *
+ * Both single and double quotes are accepted inside brackets.
+ */
 export function parseConfigPath(raw: string): {
   ok: boolean;
   path?: string[];
@@ -12,14 +21,95 @@ export function parseConfigPath(raw: string): {
   if (!trimmed) {
     return {
       ok: false,
-      error: "Invalid path. Use dot notation (e.g. foo.bar).",
+      error:
+        'Invalid path. Use dot notation (e.g. foo.bar) or bracket notation for keys with periods (e.g. providers["llama.cpp"]).',
     };
   }
-  const parts = trimmed.split(".").map((part) => part.trim());
-  if (parts.some((part) => !part)) {
+
+  // Fast path: if no bracket notation, use the simple split.
+  if (!trimmed.includes("[")) {
+    const parts = trimmed.split(".").map((part) => part.trim());
+    if (parts.some((part) => !part)) {
+      return {
+        ok: false,
+        error:
+          'Invalid path. Use dot notation (e.g. foo.bar) or bracket notation for keys with periods (e.g. providers["llama.cpp"]).',
+      };
+    }
+    if (parts.some((part) => isBlockedObjectKey(part))) {
+      return { ok: false, error: "Invalid path segment." };
+    }
+    return { ok: true, path: parts };
+  }
+
+  // Bracket-aware parser.
+  const parts: string[] = [];
+  let i = 0;
+  let segment = "";
+
+  while (i < trimmed.length) {
+    const ch = trimmed[i];
+
+    if (ch === ".") {
+      const key = segment.trim();
+      if (key) {
+        parts.push(key);
+      }
+      segment = "";
+      i += 1;
+      continue;
+    }
+
+    if (ch === "[") {
+      // Flush any accumulated dot-separated segment.
+      const key = segment.trim();
+      if (key) {
+        parts.push(key);
+      }
+      segment = "";
+
+      const quoteChar = trimmed[i + 1];
+      if (quoteChar !== '"' && quoteChar !== "'") {
+        return {
+          ok: false,
+          error: 'Bracket notation requires quotes (e.g. ["llama.cpp"]).',
+        };
+      }
+      const closeQuote = trimmed.indexOf(quoteChar, i + 2);
+      if (closeQuote < 0 || trimmed[closeQuote + 1] !== "]") {
+        return {
+          ok: false,
+          error: 'Unterminated bracket notation (e.g. ["llama.cpp"]).',
+        };
+      }
+      const bracketKey = trimmed.slice(i + 2, closeQuote);
+      if (!bracketKey) {
+        return { ok: false, error: "Empty bracket key." };
+      }
+      parts.push(bracketKey);
+      // Skip past the closing `]` (and an optional following `.`).
+      i = closeQuote + 2;
+      if (i < trimmed.length && trimmed[i] === ".") {
+        i += 1;
+      }
+      continue;
+    }
+
+    segment += ch;
+    i += 1;
+  }
+
+  // Flush trailing segment.
+  const trailing = segment.trim();
+  if (trailing) {
+    parts.push(trailing);
+  }
+
+  if (parts.length === 0) {
     return {
       ok: false,
-      error: "Invalid path. Use dot notation (e.g. foo.bar).",
+      error:
+        'Invalid path. Use dot notation (e.g. foo.bar) or bracket notation for keys with periods (e.g. providers["llama.cpp"]).',
     };
   }
   if (parts.some((part) => isBlockedObjectKey(part))) {
