@@ -52,6 +52,13 @@ export function parseConfigPath(raw: string): {
 
     if (ch === ".") {
       const key = segment.trim();
+      if (!key && parts.length > 0) {
+        return {
+          ok: false,
+          error:
+            'Invalid path. Use dot notation (e.g. foo.bar) or bracket notation for keys with periods (e.g. providers["llama.cpp"]).',
+        };
+      }
       if (key) {
         parts.push(key);
       }
@@ -89,8 +96,15 @@ export function parseConfigPath(raw: string): {
       parts.push(bracketKey);
       // Skip past the closing `]` (and an optional following `.`).
       i = closeQuote + 2;
-      if (i < trimmed.length && trimmed[i] === ".") {
-        i += 1;
+      if (i < trimmed.length) {
+        if (trimmed[i] === ".") {
+          i += 1;
+        } else if (trimmed[i] !== "[") {
+          return {
+            ok: false,
+            error: 'Missing separator after bracket notation. Use a dot (e.g. ["key"].next).',
+          };
+        }
       }
       continue;
     }

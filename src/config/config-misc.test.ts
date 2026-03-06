@@ -300,6 +300,20 @@ describe("config paths", () => {
     expect(parsed.path).toEqual(["parent", "leaf.key"]);
   });
 
+  it("rejects missing separator after bracket notation", () => {
+    expect(parseConfigPath('foo["bar"]baz').ok).toBe(false);
+  });
+
+  it("rejects consecutive dots in bracket paths", () => {
+    expect(parseConfigPath('foo..["bar"]').ok).toBe(false);
+  });
+
+  it("allows consecutive brackets without dot separator", () => {
+    const parsed = parseConfigPath('foo["bar"]["baz"]');
+    expect(parsed.ok).toBe(true);
+    expect(parsed.path).toEqual(["foo", "bar", "baz"]);
+  });
+
   it("rejects bracket notation without quotes", () => {
     expect(parseConfigPath("foo[bar]").ok).toBe(false);
   });
