@@ -90,6 +90,17 @@ describe("scheduled task runtime derivation", () => {
       }),
     ).toEqual({ status: "stopped" });
   });
+
+  it("treats localized running status without last result as stopped (result code required for non-English)", () => {
+    // Known limitation: without a lastRunResult, non-English status strings
+    // cannot be identified as running. This is acceptable because schtasks
+    // populates Last Run Result almost immediately after task start.
+    expect(
+      deriveScheduledTaskRuntimeStatus({
+        status: "Wird ausgeführt",
+      }),
+    ).toEqual({ status: "stopped" });
+  });
 });
 
 describe("resolveTaskScriptPath", () => {
