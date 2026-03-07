@@ -157,6 +157,23 @@
     "responseTimeoutMs": {
       "label": "Response Timeout (ms)",
       "advanced": true
+    },
+    "staleCallReaperSeconds": {
+      "label": "Stale Call Reaper (sec)",
+      "help": "Auto-reap calls stuck in unexpected states. 0 to disable.",
+      "advanced": true
+    },
+    "webhookSecurity.allowedHosts": {
+      "label": "Webhook Allowed Hosts",
+      "advanced": true
+    },
+    "webhookSecurity.trustForwardingHeaders": {
+      "label": "Trust Forwarding Headers",
+      "advanced": true
+    },
+    "webhookSecurity.trustedProxyIPs": {
+      "label": "Trusted Proxy IPs",
+      "advanced": true
     }
   },
   "configSchema": {
@@ -249,6 +266,10 @@
         "type": "integer",
         "minimum": 1
       },
+      "staleCallReaperSeconds": {
+        "type": "integer",
+        "minimum": 0
+      },
       "silenceTimeoutMs": {
         "type": "integer",
         "minimum": 1
@@ -310,6 +331,29 @@
           },
           "allowNgrokFreeTierLoopbackBypass": {
             "type": "boolean"
+          }
+        }
+      },
+      "webhookSecurity": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "allowedHosts": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "trustForwardingHeaders": {
+            "type": "boolean"
+          },
+          "trustedProxyIPs": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
           }
         }
       },
