@@ -847,6 +847,42 @@ describe("handleCommands /allowlist", () => {
     expect(writeConfigFileMock).not.toHaveBeenCalled();
   });
 
+  it("blocks /allowlist add from gateway clients without operator.admin", async () => {
+    const cfg = {
+      commands: { text: true, config: true },
+      channels: { telegram: { allowFrom: ["123"] } },
+    } as OpenClawConfig;
+    const params = buildPolicyParams("/allowlist add dm 789", cfg, {
+      Provider: INTERNAL_MESSAGE_CHANNEL,
+      Surface: INTERNAL_MESSAGE_CHANNEL,
+      GatewayClientScopes: ["operator.write"],
+    });
+    params.command.channel = INTERNAL_MESSAGE_CHANNEL;
+    const result = await handleCommands(params);
+    expect(result.shouldContinue).toBe(false);
+    expect(result.reply?.text).toContain("requires operator.admin");
+    expect(writeConfigFileMock).not.toHaveBeenCalled();
+    expect(addChannelAllowFromStoreEntryMock).not.toHaveBeenCalled();
+  });
+
+  it("allows /allowlist list from gateway clients without operator.admin", async () => {
+    readChannelAllowFromStoreMock.mockResolvedValueOnce([]);
+    const cfg = {
+      commands: { text: true },
+      channels: { telegram: { allowFrom: ["123"] } },
+    } as OpenClawConfig;
+    const params = buildPolicyParams("/allowlist list dm", cfg, {
+      Provider: INTERNAL_MESSAGE_CHANNEL,
+      Surface: INTERNAL_MESSAGE_CHANNEL,
+      GatewayClientScopes: ["operator.write"],
+    });
+    params.command.channel = INTERNAL_MESSAGE_CHANNEL;
+    const result = await handleCommands(params);
+    expect(result.shouldContinue).toBe(false);
+    // list should succeed (no admin required for reads)
+    expect(result.reply?.text).not.toContain("requires operator.admin");
+  });
+
   it("removes DM allowlist entries from canonical allowFrom and deletes legacy dm.allowFrom", async () => {
     const cases = [
       {
