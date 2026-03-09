@@ -212,4 +212,52 @@ describe("evaluateTelegramGroupPolicyAccess – chat allowlist vs sender allowli
 
     expect(result).toEqual({ allowed: true, groupPolicy: "allowlist" });
   });
+
+  it("allows group when its negative chat ID is listed in groupAllowFrom (#40444)", () => {
+    const groupChatAllow = {
+      entries: ["-1003890514701"],
+      hasWildcard: false,
+      hasEntries: true,
+      invalidEntries: [],
+    };
+
+    const result = runAccess({
+      chatId: "-1003890514701",
+      effectiveGroupAllow: groupChatAllow,
+      senderId: "999", // sender NOT in entries — but chat ID IS
+      resolveGroupPolicy: () => ({
+        allowlistEnabled: false,
+        allowed: false,
+      }),
+      checkChatAllowlist: false,
+    });
+
+    expect(result).toEqual({ allowed: true, groupPolicy: "allowlist" });
+  });
+
+  it("rejects group when its chat ID is NOT in groupAllowFrom", () => {
+    const groupChatAllow = {
+      entries: ["-1003890514701"],
+      hasWildcard: false,
+      hasEntries: true,
+      invalidEntries: [],
+    };
+
+    const result = runAccess({
+      chatId: "-100999888777", // different group
+      effectiveGroupAllow: groupChatAllow,
+      senderId: "999",
+      resolveGroupPolicy: () => ({
+        allowlistEnabled: false,
+        allowed: false,
+      }),
+      checkChatAllowlist: false,
+    });
+
+    expect(result).toEqual({
+      allowed: false,
+      reason: "group-policy-allowlist-unauthorized",
+      groupPolicy: "allowlist",
+    });
+  });
 });

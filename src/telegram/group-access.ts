@@ -189,7 +189,11 @@ export const evaluateTelegramGroupPolicyAccess = (params: {
           allow: params.effectiveGroupAllow,
           senderId,
           senderUsername: params.senderUsername ?? "",
-        }),
+        }) ||
+        // Allow if the chat ID itself is listed in groupAllowFrom (negative
+        // Telegram supergroup/group IDs).  This lets users allowlist groups
+        // directly via groupAllowFrom without needing a separate groups config.
+        params.effectiveGroupAllow.entries.includes(String(params.chatId)),
     });
     if (!senderAuthorization.allowed && senderAuthorization.reason === "missing_match_input") {
       return { allowed: false, reason: "group-policy-allowlist-no-sender", groupPolicy };
