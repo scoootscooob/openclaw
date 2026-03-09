@@ -1,3 +1,4 @@
+import { isKnownCoreToolId } from "./tool-catalog.js";
 import {
   expandToolGroups,
   normalizeToolList,
@@ -173,10 +174,15 @@ export function stripPluginOnlyAllowlist(
       entry === "group:plugins" || pluginIds.has(entry) || pluginTools.has(entry);
     const expanded = expandToolGroups([entry]);
     const isCoreEntry = expanded.some((tool) => coreTools.has(tool));
-    if (isCoreEntry) {
+    // Also recognize tools defined in the core catalog but not instantiated for the
+    // current provider (e.g. `apply_patch` is only available with OpenAI-compatible
+    // providers but is listed in built-in profiles like `coding`).  Without this
+    // check these entries are incorrectly flagged as unknown. (#40538)
+    const isCatalogEntry = !isCoreEntry && expanded.some((tool) => isKnownCoreToolId(tool));
+    if (isCoreEntry || isCatalogEntry) {
       hasCoreEntry = true;
     }
-    if (!isCoreEntry && !isPluginEntry) {
+    if (!isCoreEntry && !isCatalogEntry && !isPluginEntry) {
       unknownAllowlist.push(entry);
     }
   }

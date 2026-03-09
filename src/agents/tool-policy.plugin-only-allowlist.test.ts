@@ -1,5 +1,14 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { stripPluginOnlyAllowlist, type PluginToolGroups } from "./tool-policy.js";
+
+// Mock isKnownCoreToolId so the test doesn't depend on the real tool catalog.
+vi.mock(import("./tool-catalog.js"), async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    isKnownCoreToolId: (id: string) => ["apply_patch", "read", "write", "exec"].includes(id),
+  };
+});
 
 const pluginGroups: PluginToolGroups = {
   all: ["lobster", "workflow_tool"],
@@ -52,5 +61,28 @@ describe("stripPluginOnlyAllowlist", () => {
     );
     expect(policy.policy?.allow).toEqual(["read", "lobster"]);
     expect(policy.unknownAllowlist).toEqual(["lobster"]);
+  });
+
+  it("does not flag catalog-known tools as unknown when not in runtime coreTools (#40538)", () => {
+    // `apply_patch` is in the core catalog (coding profile) but not in the runtime
+    // coreTools set because it's only instantiated for OpenAI-compatible providers.
+    const emptyPlugins: PluginToolGroups = { all: [], byPlugin: new Map() };
+    const policy = stripPluginOnlyAllowlist(
+      { allow: ["read", "apply_patch"] },
+      emptyPlugins,
+      coreTools,
+    );
+    expect(policy.policy?.allow).toEqual(["read", "apply_patch"]);
+    expect(policy.unknownAllowlist).toEqual([]);
+    expect(policy.strippedAllowlist).toBe(false);
+  });
+
+  it("keeps allowlist when only catalog-known tools are present (#40538)", () => {
+    // Even if no runtime core tools match, catalog-known tools should prevent stripping.
+    const emptyPlugins: PluginToolGroups = { all: [], byPlugin: new Map() };
+    const policy = stripPluginOnlyAllowlist({ allow: ["apply_patch"] }, emptyPlugins, coreTools);
+    expect(policy.policy?.allow).toEqual(["apply_patch"]);
+    expect(policy.unknownAllowlist).toEqual([]);
+    expect(policy.strippedAllowlist).toBe(false);
   });
 });
