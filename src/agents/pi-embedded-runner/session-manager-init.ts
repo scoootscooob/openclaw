@@ -1,7 +1,10 @@
 import fs from "node:fs/promises";
 
 type SessionHeaderEntry = { type: "session"; id?: string; cwd?: string };
-type SessionMessageEntry = { type: "message"; message?: { role?: string } };
+type SessionMessageEntry = {
+  type: "message";
+  message?: { role?: string; content?: Array<{ type?: string }> };
+};
 
 /**
  * pi-coding-agent SessionManager persistence quirk:
@@ -49,5 +52,37 @@ export async function prepareSessionManagerForRun(params: {
     sm.labelsById?.clear?.();
     sm.leafId = null;
     sm.flushed = false;
+  }
+
+  // Strip `thinking` and `redacted_thinking` blocks from loaded assistant
+  // messages.  After a gateway restart the session file is deserialized from
+  // JSON which can corrupt the opaque `signature` field on these blocks.  The
+  // Anthropic API then rejects the request with "thinking or redacted_thinking
+  // blocks in the latest assistant message cannot be modified" (#40512).
+  // Stripping them at load time is safe: thinking blocks are internal reasoning
+  // that the API does not require for conversation continuation.
+  if (params.hadSessionFile) {
+    stripThinkingBlocksFromLoadedEntries(sm.fileEntries);
+  }
+}
+
+function stripThinkingBlocksFromLoadedEntries(
+  entries: Array<SessionHeaderEntry | SessionMessageEntry | { type: string }>,
+): void {
+  for (const entry of entries) {
+    if (entry.type !== "message") {
+      continue;
+    }
+    const msg = (entry as SessionMessageEntry).message;
+    if (msg?.role !== "assistant" || !Array.isArray(msg.content)) {
+      continue;
+    }
+    const filtered = msg.content.filter((block) => {
+      const blockType = block?.type;
+      return blockType !== "thinking" && blockType !== "redacted_thinking";
+    });
+    if (filtered.length !== msg.content.length) {
+      msg.content = filtered.length > 0 ? filtered : [{ type: "text" }];
+    }
   }
 }
