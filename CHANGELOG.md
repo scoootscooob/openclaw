@@ -262,6 +262,7 @@ Docs: https://docs.openclaw.ai
 - Models/provider apiKey persistence hardening: when a provider `apiKey` value equals a known provider env var value, persist the canonical env var name into `models.json` instead of resolved plaintext secrets. (#38889) Thanks @gambletan.
 - Discord/model picker persistence check: add a short post-dispatch settle delay before reading back session model state so picker confirmations stop reporting false mismatch warnings after successful model switches. (#39105) Thanks @akropp.
 - Agents/OpenAI WS compat store flag: omit `store` from `response.create` payloads when model compat sets `supportsStore: false`, preventing strict OpenAI-compatible providers from rejecting websocket requests with unknown-field errors. (#39113) Thanks @scoootscooob.
+- ACP/client final-message delivery: preserve terminal assistant text snapshots before resolving `end_turn`, so ACP clients no longer drop the last visible reply when the gateway sends the final message body on the terminal chat event. (#17615) Thanks @pjeby.
 
 ## 2026.3.2
 
