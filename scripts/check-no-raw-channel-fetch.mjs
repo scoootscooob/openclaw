@@ -44,13 +44,13 @@ const allowedRawFetchCallsites = new Set([
   "extensions/voice-call/src/providers/tts-openai.ts:111",
   "extensions/voice-call/src/providers/twilio/api.ts:23",
   "extensions/telegram/src/api-fetch.ts:8",
-  "extensions/discord/src/send.outbound.ts:347",
-  "extensions/discord/src/voice-message.ts:264",
-  "extensions/discord/src/voice-message.ts:308",
-  "extensions/slack/src/monitor/media.ts:64",
-  "extensions/slack/src/monitor/media.ts:68",
-  "extensions/slack/src/monitor/media.ts:82",
-  "extensions/slack/src/monitor/media.ts:108",
+  "extensions/discord/src/send.outbound.ts:363",
+  "extensions/discord/src/voice-message.ts:268",
+  "extensions/discord/src/voice-message.ts:312",
+  "extensions/slack/src/monitor/media.ts:55",
+  "extensions/slack/src/monitor/media.ts:59",
+  "extensions/slack/src/monitor/media.ts:73",
+  "extensions/slack/src/monitor/media.ts:99",
 ]);
 
 function isRawFetchCall(expression) {
