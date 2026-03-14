@@ -5,6 +5,7 @@ type SlackProviderMonitor = (params: {
   botToken: string;
   appToken: string;
   abortSignal: AbortSignal;
+  config?: Record<string, unknown>;
 }) => Promise<unknown>;
 
 type SlackTestState = {
