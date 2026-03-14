@@ -7,11 +7,7 @@ import { setActivePluginRegistry } from "../../plugins/runtime.js";
 import { createOutboundTestPlugin, createTestRegistry } from "../../test-utils/channel-plugins.js";
 import { createIMessageTestPlugin } from "../../test-utils/imessage-test-plugin.js";
 import { createInternalHookEventPayload } from "../../test-utils/internal-hook-event-payload.js";
-import type {
-  DeliverOutboundPayloadsParams,
-  OutboundDeliveryResult,
-  OutboundSendDeps,
-} from "./deliver.js";
+import type { DeliverOutboundPayloadsParams, OutboundDeliveryResult } from "./deliver.js";
 
 type DeliverMockState = {
   sessions: {
