@@ -56,5 +56,5 @@ for (const entry of entrypoints) {
   const out = path.join(process.cwd(), `dist/plugin-sdk/${entry}.d.ts`);
   fs.mkdirSync(path.dirname(out), { recursive: true });
   // NodeNext: reference the runtime specifier with `.js`, TS will map it to `.d.ts`.
-  fs.writeFileSync(out, `export * from "./plugin-sdk/${entry}.js";\n`, "utf8");
+  fs.writeFileSync(out, `export * from "./src/plugin-sdk/${entry}.js";\n`, "utf8");
 }
