@@ -51,6 +51,9 @@ type TelegramSendFn = ReturnType<
 >["channel"]["telegram"]["sendMessageTelegram"];
 
 const meta = getChatChannelMeta("telegram");
+type TelegramSendFn = ReturnType<
+  typeof getTelegramRuntime
+>["channel"]["telegram"]["sendMessageTelegram"];
 
 function findTelegramTokenOwnerAccountId(params: {
   cfg: OpenClawConfig;
