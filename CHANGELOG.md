@@ -21,6 +21,7 @@ Docs: https://docs.openclaw.ai
 - CI/channel test routing: move the built-in channel suites into `test:channels` and keep them out of `test:extensions`, so extension CI no longer fails after the channel migration while targeted test routing still sends Slack, Signal, and iMessage suites to the right lane. (#46066) Thanks @scoootscooob.
 - Agents/usage tracking: stop forcing `supportsUsageInStreaming: false` on non-native openai-completions endpoints so providers like DashScope, DeepSeek, and other OpenAI-compatible backends report token usage and cost instead of showing all zeros. (#46142)
 - Node/startup: remove leftover debug `console.log("node host PATH: ...")` that printed the resolved PATH on every `openclaw node run` invocation. (#46411)
+- Configure/startup: move the remaining channel-facing `OutboundSendDeps` imports onto the lightweight send-deps helper so `openclaw configure` no longer risks stalling on WhatsApp and other channel startup paths.
 
 ## 2026.3.13
 
