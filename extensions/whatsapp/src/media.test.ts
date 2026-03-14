@@ -19,10 +19,9 @@ import {
 const convertHeicToJpegMock = vi.fn();
 
 vi.mock("../../../src/media/image-ops.js", async () => {
-  const actual =
-    await vi.importActual<typeof import("../../../src/media/image-ops.js")>(
-      "../media/image-ops.js",
-    );
+  const actual = await vi.importActual<typeof import("../../../src/media/image-ops.js")>(
+    "../../../src/media/image-ops.js",
+  );
   return {
     ...actual,
     convertHeicToJpeg: (...args: unknown[]) => convertHeicToJpegMock(...args),

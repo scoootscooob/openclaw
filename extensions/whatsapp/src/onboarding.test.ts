@@ -19,7 +19,8 @@ vi.mock("../../../src/channel-web.js", () => ({
 }));
 
 vi.mock("../../../src/utils.js", async () => {
-  const actual = await vi.importActual<typeof import("../../../src/utils.js")>("../../../utils.js");
+  const actual =
+    await vi.importActual<typeof import("../../../src/utils.js")>("../../../src/utils.js");
   return {
     ...actual,
     pathExists: pathExistsMock,
