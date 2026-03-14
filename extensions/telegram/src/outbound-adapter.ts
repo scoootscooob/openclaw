@@ -1,3 +1,8 @@
+import type { ReplyPayload } from "../../../src/auto-reply/types.js";
+import {
+  resolvePayloadMediaUrls,
+  sendPayloadMediaSequence,
+} from "../../../src/channels/plugins/outbound/direct-text-media.js";
 import type { ChannelOutboundAdapter } from "../../../src/channels/plugins/types.js";
 import type { OutboundSendDeps } from "../../../src/infra/outbound/deliver.js";
 import type { TelegramInlineButtons } from "./button-types.js";
@@ -5,16 +10,19 @@ import { markdownToTelegramHtmlChunks } from "./format.js";
 import { parseTelegramReplyToMessageId, parseTelegramThreadId } from "./outbound-params.js";
 import { sendMessageTelegram } from "./send.js";
 
+type TelegramSendFn = typeof sendMessageTelegram;
+type TelegramSendOpts = Parameters<TelegramSendFn>[2];
+
 function resolveTelegramSendContext(params: {
-  cfg: NonNullable<Parameters<typeof sendMessageTelegram>[2]>["cfg"];
+  cfg: NonNullable<TelegramSendOpts>["cfg"];
   deps?: OutboundSendDeps;
   accountId?: string | null;
   replyToId?: string | null;
   threadId?: string | number | null;
 }): {
-  send: typeof sendMessageTelegram;
+  send: TelegramSendFn;
   baseOpts: {
-    cfg: NonNullable<Parameters<typeof sendMessageTelegram>[2]>["cfg"];
+    cfg: NonNullable<TelegramSendOpts>["cfg"];
     verbose: false;
     textMode: "html";
     messageThreadId?: number;
@@ -34,6 +42,45 @@ function resolveTelegramSendContext(params: {
       accountId: params.accountId ?? undefined,
     },
   };
+}
+
+export async function sendTelegramPayloadMessages(params: {
+  send: TelegramSendFn;
+  to: string;
+  payload: ReplyPayload;
+  baseOpts: Omit<NonNullable<TelegramSendOpts>, "buttons" | "mediaUrl" | "quoteText">;
+}): Promise<Awaited<ReturnType<TelegramSendFn>>> {
+  const telegramData = params.payload.channelData?.telegram as
+    | { buttons?: TelegramInlineButtons; quoteText?: string }
+    | undefined;
+  const quoteText =
+    typeof telegramData?.quoteText === "string" ? telegramData.quoteText : undefined;
+  const text = params.payload.text ?? "";
+  const mediaUrls = resolvePayloadMediaUrls(params.payload);
+  const payloadOpts = {
+    ...params.baseOpts,
+    quoteText,
+  };
+
+  if (mediaUrls.length === 0) {
+    return await params.send(params.to, text, {
+      ...payloadOpts,
+      buttons: telegramData?.buttons,
+    });
+  }
+
+  // Telegram allows reply_markup on media; attach buttons only to the first send.
+  const finalResult = await sendPayloadMediaSequence({
+    text,
+    mediaUrls,
+    send: async ({ text, mediaUrl, isFirst }) =>
+      await params.send(params.to, text, {
+        ...payloadOpts,
+        mediaUrl,
+        ...(isFirst ? { buttons: telegramData?.buttons } : {}),
+      }),
+  });
+  return finalResult ?? { messageId: "unknown", chatId: params.to };
 }
 
 export const telegramOutbound: ChannelOutboundAdapter = {
@@ -89,49 +136,22 @@ export const telegramOutbound: ChannelOutboundAdapter = {
     replyToId,
     threadId,
   }) => {
-    const { send, baseOpts: contextOpts } = resolveTelegramSendContext({
+    const { send, baseOpts } = resolveTelegramSendContext({
       cfg,
       deps,
       accountId,
       replyToId,
       threadId,
     });
-    const telegramData = payload.channelData?.telegram as
-      | { buttons?: TelegramInlineButtons; quoteText?: string }
-      | undefined;
-    const quoteText =
-      typeof telegramData?.quoteText === "string" ? telegramData.quoteText : undefined;
-    const text = payload.text ?? "";
-    const mediaUrls = payload.mediaUrls?.length
-      ? payload.mediaUrls
-      : payload.mediaUrl
-        ? [payload.mediaUrl]
-        : [];
-    const payloadOpts = {
-      ...contextOpts,
-      quoteText,
-      mediaLocalRoots,
-    };
-
-    if (mediaUrls.length === 0) {
-      const result = await send(to, text, {
-        ...payloadOpts,
-        buttons: telegramData?.buttons,
-      });
-      return { channel: "telegram", ...result };
-    }
-
-    // Telegram allows reply_markup on media; attach buttons only to first send.
-    let finalResult: Awaited<ReturnType<typeof send>> | undefined;
-    for (let i = 0; i < mediaUrls.length; i += 1) {
-      const mediaUrl = mediaUrls[i];
-      const isFirst = i === 0;
-      finalResult = await send(to, isFirst ? text : "", {
-        ...payloadOpts,
-        mediaUrl,
-        ...(isFirst ? { buttons: telegramData?.buttons } : {}),
-      });
-    }
-    return { channel: "telegram", ...(finalResult ?? { messageId: "unknown", chatId: to }) };
+    const result = await sendTelegramPayloadMessages({
+      send,
+      to,
+      payload,
+      baseOpts: {
+        ...baseOpts,
+        mediaLocalRoots,
+      },
+    });
+    return { channel: "telegram", ...result };
   },
 };
