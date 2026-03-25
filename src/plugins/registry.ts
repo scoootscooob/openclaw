@@ -6,6 +6,7 @@ import type {
   GatewayRequestHandler,
   GatewayRequestHandlers,
 } from "../gateway/server-methods/types.js";
+import type { HardwareAdapterPlugin, RegisteredHardwareAdapter } from "../hardware/types.js";
 import { registerInternalHook } from "../hooks/internal-hooks.js";
 import type { HookEntry } from "../hooks/types.js";
 import { registerMemoryPromptSection } from "../memory/prompt-section.js";
@@ -126,6 +127,8 @@ export type PluginImageGenerationProviderRegistration =
 export type PluginWebSearchProviderRegistration =
   PluginOwnedProviderRegistration<WebSearchProviderPlugin>;
 
+export type PluginHardwareAdapterRegistration = RegisteredHardwareAdapter;
+
 export type PluginHookRegistration = {
   pluginId: string;
   entry: HookEntry;
@@ -179,6 +182,7 @@ export type PluginRecord = {
   hookNames: string[];
   channelIds: string[];
   providerIds: string[];
+  hardwareAdapterIds?: string[];
   speechProviderIds: string[];
   mediaUnderstandingProviderIds: string[];
   imageGenerationProviderIds: string[];
@@ -202,6 +206,7 @@ export type PluginRegistry = {
   channels: PluginChannelRegistration[];
   channelSetups: PluginChannelSetupRegistration[];
   providers: PluginProviderRegistration[];
+  hardwareAdapters?: PluginHardwareAdapterRegistration[];
   speechProviders: PluginSpeechProviderRegistration[];
   mediaUnderstandingProviders: PluginMediaUnderstandingProviderRegistration[];
   imageGenerationProviders: PluginImageGenerationProviderRegistration[];
@@ -654,6 +659,52 @@ export function createPluginRegistry(registryParams: PluginRegistryParams) {
     });
   };
 
+  const registerHardwareAdapter = (record: PluginRecord, adapter: HardwareAdapterPlugin) => {
+    const id = adapter.id.trim();
+    const label = adapter.label.trim();
+    if (!id) {
+      pushDiagnostic({
+        level: "error",
+        pluginId: record.id,
+        source: record.source,
+        message: "hardware adapter registration missing id",
+      });
+      return;
+    }
+    if (!label) {
+      pushDiagnostic({
+        level: "error",
+        pluginId: record.id,
+        source: record.source,
+        message: `hardware adapter "${id}" missing label`,
+      });
+      return;
+    }
+    const existing = registry.hardwareAdapters?.find((entry) => entry.id === id);
+    if (existing) {
+      pushDiagnostic({
+        level: "error",
+        pluginId: record.id,
+        source: record.source,
+        message: `hardware adapter already registered: ${id} (${existing.pluginId})`,
+      });
+      return;
+    }
+    record.hardwareAdapterIds ??= [];
+    record.hardwareAdapterIds.push(id);
+    registry.hardwareAdapters ??= [];
+    registry.hardwareAdapters.push({
+      ...adapter,
+      id,
+      label,
+      supportedFeatures: [...new Set(adapter.supportedFeatures ?? [])].toSorted(),
+      pluginId: record.id,
+      pluginName: record.name,
+      source: record.source,
+      rootDir: record.rootDir,
+    });
+  };
+
   const registerCli = (
     record: PluginRecord,
     registrar: OpenClawPluginCliRegistrar,
@@ -906,6 +957,10 @@ export function createPluginRegistry(registryParams: PluginRegistryParams) {
       registerChannel: (registration) => registerChannel(record, registration, registrationMode),
       registerProvider:
         registrationMode === "full" ? (provider) => registerProvider(record, provider) : () => {},
+      registerHardwareAdapter:
+        registrationMode === "full"
+          ? (adapter) => registerHardwareAdapter(record, adapter)
+          : () => {},
       registerSpeechProvider:
         registrationMode === "full"
           ? (provider) => registerSpeechProvider(record, provider)
@@ -1010,6 +1065,7 @@ export function createPluginRegistry(registryParams: PluginRegistryParams) {
     registerTool,
     registerChannel,
     registerProvider,
+    registerHardwareAdapter,
     registerSpeechProvider,
     registerMediaUnderstandingProvider,
     registerImageGenerationProvider,

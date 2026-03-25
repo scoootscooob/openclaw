@@ -27,6 +27,7 @@ import { definePluginEntry } from "./plugin-entry.js";
 
 export type {
   AnyAgentTool,
+  HardwareAdapterPlugin,
   MediaUnderstandingProviderPlugin,
   OpenClawPluginConfigSchema,
   ProviderDiscoveryContext,

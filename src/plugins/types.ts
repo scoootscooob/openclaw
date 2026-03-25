@@ -23,6 +23,7 @@ import type {
 import type { OpenClawConfig } from "../config/config.js";
 import type { ModelProviderConfig } from "../config/types.js";
 import type { GatewayRequestHandler } from "../gateway/server-methods/types.js";
+import type { HardwareAdapterPlugin } from "../hardware/types.js";
 import type { InternalHookHandler } from "../hooks/internal-hooks.js";
 import type { HookEntry } from "../hooks/types.js";
 import type { ImageGenerationProvider } from "../image-generation/types.js";
@@ -47,6 +48,11 @@ import type { PluginRuntime } from "./runtime/types.js";
 
 export type { PluginRuntime } from "./runtime/types.js";
 export type { AnyAgentTool } from "../agents/tools/common.js";
+export type {
+  HardwareAdapterFeature,
+  HardwareAdapterPlugin,
+  RegisteredHardwareAdapter,
+} from "../hardware/types.js";
 
 export type ProviderAuthOptionBag = {
   token?: string;
@@ -1354,6 +1360,8 @@ export type OpenClawPluginApi = {
   registerImageGenerationProvider: (provider: ImageGenerationProviderPlugin) => void;
   /** Register a web search provider (web search capability). */
   registerWebSearchProvider: (provider: WebSearchProviderPlugin) => void;
+  /** Register a hardware adapter (hardware capability). */
+  registerHardwareAdapter: (adapter: HardwareAdapterPlugin) => void;
   registerInteractiveHandler: (registration: PluginInteractiveHandlerRegistration) => void;
   onConversationBindingResolved: (
     handler: (event: PluginConversationBindingResolvedEvent) => void | Promise<void>,

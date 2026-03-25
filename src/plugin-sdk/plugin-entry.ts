@@ -9,6 +9,7 @@ import type {
 
 export type {
   AnyAgentTool,
+  HardwareAdapterPlugin,
   MediaUnderstandingProviderPlugin,
   OpenClawPluginApi,
   PluginCommandContext,

@@ -9,6 +9,7 @@ export function createEmptyPluginRegistry(): PluginRegistry {
     channels: [],
     channelSetups: [],
     providers: [],
+    hardwareAdapters: [],
     speechProviders: [],
     mediaUnderstandingProviders: [],
     imageGenerationProviders: [],
