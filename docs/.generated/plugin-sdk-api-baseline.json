@@ -3009,7 +3009,7 @@
           "exportName": "buildChannelOutboundSessionRoute",
           "kind": "function",
           "source": {
-            "line": 179,
+            "line": 178,
             "path": "src/plugin-sdk/core.ts"
           }
         },
@@ -3045,7 +3045,7 @@
           "exportName": "createChannelPluginBase",
           "kind": "function",
           "source": {
-            "line": 453,
+            "line": 452,
             "path": "src/plugin-sdk/core.ts"
           }
         },
@@ -3054,7 +3054,7 @@
           "exportName": "createChatChannelPlugin",
           "kind": "function",
           "source": {
-            "line": 430,
+            "line": 429,
             "path": "src/plugin-sdk/core.ts"
           }
         },
@@ -3063,7 +3063,7 @@
           "exportName": "defineChannelPluginEntry",
           "kind": "function",
           "source": {
-            "line": 262,
+            "line": 261,
             "path": "src/plugin-sdk/core.ts"
           }
         },
@@ -3072,7 +3072,7 @@
           "exportName": "definePluginEntry",
           "kind": "function",
           "source": {
-            "line": 104,
+            "line": 103,
             "path": "src/plugin-sdk/plugin-entry.ts"
           }
         },
@@ -3081,7 +3081,7 @@
           "exportName": "defineSetupPluginEntry",
           "kind": "function",
           "source": {
-            "line": 293,
+            "line": 292,
             "path": "src/plugin-sdk/core.ts"
           }
         },
@@ -3279,7 +3279,7 @@
           "exportName": "stripChannelTargetPrefix",
           "kind": "function",
           "source": {
-            "line": 159,
+            "line": 158,
             "path": "src/plugin-sdk/core.ts"
           }
         },
@@ -3288,7 +3288,7 @@
           "exportName": "stripTargetKindPrefix",
           "kind": "function",
           "source": {
-            "line": 171,
+            "line": 170,
             "path": "src/plugin-sdk/core.ts"
           }
         },
@@ -3360,7 +3360,7 @@
           "exportName": "ChannelOutboundSessionRouteParams",
           "kind": "type",
           "source": {
-            "line": 154,
+            "line": 153,
             "path": "src/plugin-sdk/core.ts"
           }
         },
@@ -3387,7 +3387,7 @@
           "exportName": "GatewayRequestHandlerOptions",
           "kind": "type",
           "source": {
-            "line": 121,
+            "line": 125,
             "path": "src/gateway/server-methods/types.ts"
           }
         },
@@ -3396,7 +3396,7 @@
           "exportName": "HardwareActionParams",
           "kind": "type",
           "source": {
-            "line": 51,
+            "line": 40,
             "path": "src/hardware/types.ts"
           }
         },
@@ -3405,7 +3405,16 @@
           "exportName": "HardwareActionResult",
           "kind": "type",
           "source": {
-            "line": 57,
+            "line": 46,
+            "path": "src/hardware/types.ts"
+          }
+        },
+        {
+          "declaration": "export type HardwareAdapterFeature = HardwareAdapterFeature;",
+          "exportName": "HardwareAdapterFeature",
+          "kind": "type",
+          "source": {
+            "line": 1,
             "path": "src/hardware/types.ts"
           }
         },
@@ -3414,7 +3423,7 @@
           "exportName": "HardwareAdapterPlugin",
           "kind": "type",
           "source": {
-            "line": 96,
+            "line": 81,
             "path": "src/hardware/types.ts"
           }
         },
@@ -3423,7 +3432,7 @@
           "exportName": "HardwareAdapterResource",
           "kind": "type",
           "source": {
-            "line": 23,
+            "line": 15,
             "path": "src/hardware/types.ts"
           }
         },
@@ -3432,7 +3441,7 @@
           "exportName": "HardwareAdapterWatchEvent",
           "kind": "type",
           "source": {
-            "line": 69,
+            "line": 58,
             "path": "src/hardware/types.ts"
           }
         },
@@ -3441,22 +3450,13 @@
           "exportName": "HardwareListParams",
           "kind": "type",
           "source": {
-            "line": 46,
+            "line": 35,
             "path": "src/hardware/types.ts"
           }
         },
         {
           "declaration": "export type HardwareResourceAction = HardwareResourceAction;",
           "exportName": "HardwareResourceAction",
-          "kind": "type",
-          "source": {
-            "line": 9,
-            "path": "src/hardware/types.ts"
-          }
-        },
-        {
-          "declaration": "export type HardwareResourceGroup = HardwareResourceGroup;",
-          "exportName": "HardwareResourceGroup",
           "kind": "type",
           "source": {
             "line": 3,
@@ -3468,7 +3468,7 @@
           "exportName": "HardwareResourceRecord",
           "kind": "type",
           "source": {
-            "line": 35,
+            "line": 26,
             "path": "src/hardware/types.ts"
           }
         },
@@ -3477,7 +3477,7 @@
           "exportName": "HardwareResourceState",
           "kind": "type",
           "source": {
-            "line": 16,
+            "line": 9,
             "path": "src/hardware/types.ts"
           }
         },
@@ -3486,7 +3486,7 @@
           "exportName": "HardwareWatchEvent",
           "kind": "type",
           "source": {
-            "line": 77,
+            "line": 66,
             "path": "src/hardware/types.ts"
           }
         },
@@ -3495,7 +3495,7 @@
           "exportName": "HardwareWatchEventKind",
           "kind": "type",
           "source": {
-            "line": 63,
+            "line": 52,
             "path": "src/hardware/types.ts"
           }
         },
@@ -3504,16 +3504,7 @@
           "exportName": "HardwareWatchParams",
           "kind": "type",
           "source": {
-            "line": 65,
-            "path": "src/hardware/types.ts"
-          }
-        },
-        {
-          "declaration": "export type HardwareWatchStopHandle = HardwareWatchStopHandle;",
-          "exportName": "HardwareWatchStopHandle",
-          "kind": "type",
-          "source": {
-            "line": 92,
+            "line": 54,
             "path": "src/hardware/types.ts"
           }
         },
@@ -4001,7 +3992,7 @@
           "exportName": "definePluginEntry",
           "kind": "function",
           "source": {
-            "line": 104,
+            "line": 103,
             "path": "src/plugin-sdk/plugin-entry.ts"
           }
         },
@@ -4028,7 +4019,7 @@
           "exportName": "HardwareActionParams",
           "kind": "type",
           "source": {
-            "line": 51,
+            "line": 40,
             "path": "src/hardware/types.ts"
           }
         },
@@ -4037,7 +4028,16 @@
           "exportName": "HardwareActionResult",
           "kind": "type",
           "source": {
-            "line": 57,
+            "line": 46,
+            "path": "src/hardware/types.ts"
+          }
+        },
+        {
+          "declaration": "export type HardwareAdapterFeature = HardwareAdapterFeature;",
+          "exportName": "HardwareAdapterFeature",
+          "kind": "type",
+          "source": {
+            "line": 1,
             "path": "src/hardware/types.ts"
           }
         },
@@ -4046,7 +4046,7 @@
           "exportName": "HardwareAdapterPlugin",
           "kind": "type",
           "source": {
-            "line": 96,
+            "line": 81,
             "path": "src/hardware/types.ts"
           }
         },
@@ -4055,7 +4055,7 @@
           "exportName": "HardwareAdapterResource",
           "kind": "type",
           "source": {
-            "line": 23,
+            "line": 15,
             "path": "src/hardware/types.ts"
           }
         },
@@ -4064,7 +4064,7 @@
           "exportName": "HardwareAdapterWatchEvent",
           "kind": "type",
           "source": {
-            "line": 69,
+            "line": 58,
             "path": "src/hardware/types.ts"
           }
         },
@@ -4073,22 +4073,13 @@
           "exportName": "HardwareListParams",
           "kind": "type",
           "source": {
-            "line": 46,
+            "line": 35,
             "path": "src/hardware/types.ts"
           }
         },
         {
           "declaration": "export type HardwareResourceAction = HardwareResourceAction;",
           "exportName": "HardwareResourceAction",
-          "kind": "type",
-          "source": {
-            "line": 9,
-            "path": "src/hardware/types.ts"
-          }
-        },
-        {
-          "declaration": "export type HardwareResourceGroup = HardwareResourceGroup;",
-          "exportName": "HardwareResourceGroup",
           "kind": "type",
           "source": {
             "line": 3,
@@ -4100,7 +4091,7 @@
           "exportName": "HardwareResourceRecord",
           "kind": "type",
           "source": {
-            "line": 35,
+            "line": 26,
             "path": "src/hardware/types.ts"
           }
         },
@@ -4109,7 +4100,7 @@
           "exportName": "HardwareResourceState",
           "kind": "type",
           "source": {
-            "line": 16,
+            "line": 9,
             "path": "src/hardware/types.ts"
           }
         },
@@ -4118,7 +4109,7 @@
           "exportName": "HardwareWatchEvent",
           "kind": "type",
           "source": {
-            "line": 77,
+            "line": 66,
             "path": "src/hardware/types.ts"
           }
         },
@@ -4127,7 +4118,7 @@
           "exportName": "HardwareWatchEventKind",
           "kind": "type",
           "source": {
-            "line": 63,
+            "line": 52,
             "path": "src/hardware/types.ts"
           }
         },
@@ -4136,16 +4127,7 @@
           "exportName": "HardwareWatchParams",
           "kind": "type",
           "source": {
-            "line": 65,
-            "path": "src/hardware/types.ts"
-          }
-        },
-        {
-          "declaration": "export type HardwareWatchStopHandle = HardwareWatchStopHandle;",
-          "exportName": "HardwareWatchStopHandle",
-          "kind": "type",
-          "source": {
-            "line": 92,
+            "line": 54,
             "path": "src/hardware/types.ts"
           }
         },

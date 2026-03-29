@@ -281,14 +281,6 @@
       "types": "./dist/plugin-sdk/channel-config-schema.d.ts",
       "default": "./dist/plugin-sdk/channel-config-schema.js"
     },
-    "./plugin-sdk/hardware": {
-      "types": "./dist/plugin-sdk/hardware.d.ts",
-      "default": "./dist/plugin-sdk/hardware.js"
-    },
-    "./plugin-sdk/hardware-config-helpers": {
-      "types": "./dist/plugin-sdk/hardware-config-helpers.d.ts",
-      "default": "./dist/plugin-sdk/hardware-config-helpers.js"
-    },
     "./plugin-sdk/channel-actions": {
       "types": "./dist/plugin-sdk/channel-actions.d.ts",
       "default": "./dist/plugin-sdk/channel-actions.js"
