@@ -128,6 +128,15 @@ const entries: SubCliEntry[] = [
     },
   },
   {
+    name: "hardware",
+    description: "Inspect and control hardware resources",
+    hasSubcommands: true,
+    register: async (program) => {
+      const mod = await import("../hardware-cli.js");
+      mod.registerHardwareCli(program);
+    },
+  },
+  {
     name: "node",
     description: "Run and manage the headless node host service",
     hasSubcommands: true,

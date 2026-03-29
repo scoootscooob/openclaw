@@ -120,6 +120,10 @@ export type OpenClawConfig = {
   canvasHost?: CanvasHostConfig;
   talk?: TalkConfig;
   gateway?: GatewayConfig;
+  hardware?: {
+    /** When true, hardware watch events wake the agent via system events + heartbeat. */
+    agentWake?: boolean;
+  };
   memory?: MemoryConfig;
   mcp?: McpConfig;
 };

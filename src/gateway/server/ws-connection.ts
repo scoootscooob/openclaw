@@ -244,11 +244,13 @@ export function attachGatewayWsConnectionHandler(params: AttachGatewayWsConnecti
       }
       const context = buildRequestContext();
       context.unsubscribeAllSessionEvents(connId);
+      void context.unsubscribeAllHardwareWatches(connId);
       if (client?.connect?.role === "node") {
         const nodeId = context.nodeRegistry.unregister(connId);
         if (nodeId) {
           removeRemoteNodeInfo(nodeId);
           context.nodeUnsubscribeAll(nodeId);
+          context.onHardwareBridgeNodeDisconnected?.(nodeId);
         }
       }
       logWs("out", "close", {

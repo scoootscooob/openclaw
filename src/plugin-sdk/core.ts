@@ -27,6 +27,7 @@ import { definePluginEntry } from "./plugin-entry.js";
 
 export type {
   AnyAgentTool,
+  HardwareAdapterPlugin,
   MediaUnderstandingProviderPlugin,
   OpenClawPluginConfigSchema,
   ProviderDiscoveryContext,
@@ -67,6 +68,20 @@ export type {
   PluginLogger,
   PluginInteractiveTelegramHandlerContext,
 } from "../plugins/types.js";
+export type {
+  HardwareActionParams,
+  HardwareActionResult,
+  HardwareAdapterFeature,
+  HardwareAdapterWatchEvent,
+  HardwareAdapterResource,
+  HardwareListParams,
+  HardwareResourceAction,
+  HardwareResourceRecord,
+  HardwareResourceState,
+  HardwareWatchEvent,
+  HardwareWatchEventKind,
+  HardwareWatchParams,
+} from "../hardware/types.js";
 export type { OpenClawConfig } from "../config/config.js";
 export { isSecretRef } from "../config/types.secrets.js";
 export type { GatewayRequestHandlerOptions } from "../gateway/server-methods/types.js";

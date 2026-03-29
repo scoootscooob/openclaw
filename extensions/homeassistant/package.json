@@ -1,0 +1,14 @@
+{
+  "name": "@openclaw/homeassistant",
+  "version": "2026.3.24",
+  "description": "Home Assistant hardware adapter plugin",
+  "type": "module",
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ],
+    "release": {
+      "publishToNpm": true
+    }
+  }
+}

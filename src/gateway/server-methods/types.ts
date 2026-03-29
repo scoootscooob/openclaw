@@ -2,6 +2,7 @@ import type { ModelCatalogEntry } from "../../agents/model-catalog.js";
 import type { createDefaultDeps } from "../../cli/deps.js";
 import type { HealthSummary } from "../../commands/health.js";
 import type { CronService } from "../../cron/service.js";
+import type { HardwareWatchParams } from "../../hardware/types.js";
 import type { createSubsystemLogger } from "../../logging/subsystem.js";
 import type { WizardSession } from "../../wizard/session.js";
 import type { ChatAbortControllerEntry } from "../chat-abort.js";
@@ -73,6 +74,18 @@ export type GatewayRequestContext = {
   subscribeSessionMessageEvents: (connId: string, sessionKey: string) => void;
   unsubscribeSessionMessageEvents: (connId: string, sessionKey: string) => void;
   unsubscribeAllSessionEvents: (connId: string) => void;
+  subscribeHardwareWatch: (
+    connId: string,
+    params: HardwareWatchParams & {
+      adapterId: string;
+    },
+  ) => Promise<string>;
+  unsubscribeHardwareWatch: (connId: string, subscriptionId: string) => Promise<boolean>;
+  unsubscribeAllHardwareWatches: (connId: string) => Promise<void>;
+  onHardwareBridgeNodeConnected?: (
+    session: import("../node-registry.js").NodeSession,
+  ) => Promise<void>;
+  onHardwareBridgeNodeDisconnected?: (nodeId: string) => void;
   getSessionEventSubscriberConnIds: () => ReadonlySet<string>;
   registerToolEventRecipient: (runId: string, connId: string) => void;
   dedupe: Map<string, DedupeEntry>;

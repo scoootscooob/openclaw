@@ -16,6 +16,8 @@ describe("method scope resolution", () => {
     ["sessions.abort", ["operator.write"]],
     ["sessions.messages.subscribe", ["operator.read"]],
     ["sessions.messages.unsubscribe", ["operator.read"]],
+    ["hardware.watch.subscribe", ["operator.read"]],
+    ["hardware.watch.unsubscribe", ["operator.read"]],
     ["poll", ["operator.write"]],
     ["config.patch", ["operator.admin"]],
     ["wizard.start", ["operator.admin"]],

@@ -261,6 +261,10 @@
   - changed-files:
       - any-glob-to-any-file:
           - "extensions/huggingface/**"
+"extensions: homeassistant":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "extensions/homeassistant/**"
 "extensions: kilocode":
   - changed-files:
       - any-glob-to-any-file:
@@ -285,6 +289,10 @@
   - changed-files:
       - any-glob-to-any-file:
           - "extensions/moonshot/**"
+"extensions: mqtt":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "extensions/mqtt/**"
 "extensions: nvidia":
   - changed-files:
       - any-glob-to-any-file:

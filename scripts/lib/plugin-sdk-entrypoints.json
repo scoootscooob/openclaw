@@ -60,6 +60,8 @@
   "extension-shared",
   "channel-config-helpers",
   "channel-config-schema",
+  "hardware",
+  "hardware-config-helpers",
   "channel-actions",
   "channel-contract",
   "channel-feedback",

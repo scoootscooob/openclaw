@@ -53,6 +53,7 @@ import { createSubsystemLogger, runtimeForLogger } from "../logging/subsystem.js
 import { resolveConfiguredDeferredChannelPluginIds } from "../plugins/channel-plugin-ids.js";
 import { getGlobalHookRunner, runGlobalGatewayStopSafely } from "../plugins/hook-runner-global.js";
 import { createEmptyPluginRegistry } from "../plugins/registry.js";
+import { pinActivePluginChannelRegistry } from "../plugins/runtime.js";
 import { createPluginRuntime } from "../plugins/runtime/index.js";
 import type { PluginServicesHandle } from "../plugins/services.js";
 import { getTotalQueueSize } from "../process/command-queue.js";
@@ -81,6 +82,7 @@ import {
   type GatewayUpdateAvailableEventPayload,
 } from "./events.js";
 import { ExecApprovalManager } from "./exec-approval-manager.js";
+import { createHardwareBridgeManager } from "./hardware-bridge-manager.js";
 import { startGatewayModelPricingRefresh } from "./model-pricing-cache.js";
 import { NodeRegistry } from "./node-registry.js";
 import type { startBrowserControlServerIfEnabled } from "./server-browser.js";
@@ -93,6 +95,8 @@ import {
 import { createGatewayCloseHandler } from "./server-close.js";
 import { buildGatewayCronService } from "./server-cron.js";
 import { startGatewayDiscovery } from "./server-discovery-runtime.js";
+import { createHardwareEventRelay } from "./server-hardware-wake.js";
+import { createHardwareWatchSubscriptionRegistry } from "./server-hardware-watch.js";
 import { applyGatewayLaneConcurrency } from "./server-lanes.js";
 import { startGatewayMaintenanceTimers } from "./server-maintenance.js";
 import { GATEWAY_EVENTS, listGatewayMethods } from "./server-methods-list.js";
@@ -728,6 +732,43 @@ export async function startGatewayServer(
   const nodeSubscriptions = createNodeSubscriptionManager();
   const sessionEventSubscribers = createSessionEventSubscriberRegistry();
   const sessionMessageSubscribers = createSessionMessageSubscriberRegistry();
+  const hardwareWakeRelay =
+    cfgAtStart.hardware?.agentWake === true
+      ? createHardwareEventRelay({
+          sessionKey: resolveMainSessionKey(cfgAtStart),
+        })
+      : null;
+  const hardwareBridgeManager = createHardwareBridgeManager({
+    nodeRegistry,
+    onAdapterAdded: (adapter) => {
+      pluginRegistry.hardwareAdapters ??= [];
+      pluginRegistry.hardwareAdapters.push(adapter);
+    },
+    onAdapterRemoved: (adapterId) => {
+      if (!pluginRegistry.hardwareAdapters) {
+        return;
+      }
+      const idx = pluginRegistry.hardwareAdapters.findIndex((a) => a.id === adapterId);
+      if (idx >= 0) {
+        pluginRegistry.hardwareAdapters.splice(idx, 1);
+      }
+    },
+  });
+  const hardwareWatchSubscriptions = createHardwareWatchSubscriptionRegistry({
+    onEvent: (connId, subscriptionId, event) => {
+      broadcastToConnIds(
+        "hardware.changed",
+        {
+          subscriptionId,
+          ts: Date.now(),
+          ...event,
+        },
+        new Set([connId]),
+        { dropIfSlow: true },
+      );
+      hardwareWakeRelay?.(event);
+    },
+  });
   const nodeSendEvent = (opts: { nodeId: string; event: string; payloadJSON?: string | null }) => {
     const payload = safeParseJson(opts.payloadJSON ?? null);
     nodeRegistry.sendEvent(opts.nodeId, opts.event, payload);
@@ -1112,6 +1153,13 @@ export async function startGatewayServer(
       sessionEventSubscribers.unsubscribe(connId);
       sessionMessageSubscribers.unsubscribeAll(connId);
     },
+    subscribeHardwareWatch: (connId, params) =>
+      hardwareWatchSubscriptions.subscribe(connId, params),
+    unsubscribeHardwareWatch: (connId, subscriptionId) =>
+      hardwareWatchSubscriptions.unsubscribe(connId, subscriptionId),
+    unsubscribeAllHardwareWatches: (connId) => hardwareWatchSubscriptions.unsubscribeAll(connId),
+    onHardwareBridgeNodeConnected: (session) => hardwareBridgeManager.onNodeConnected(session),
+    onHardwareBridgeNodeDisconnected: (nodeId) => hardwareBridgeManager.onNodeDisconnected(nodeId),
     getSessionEventSubscriberConnIds: sessionEventSubscribers.getAll,
     registerToolEventRecipient: toolEventRecipients.add,
     dedupe,
@@ -1195,6 +1243,7 @@ export async function startGatewayServer(
         baseMethods,
         logDiagnostics: false,
       }));
+      pinActivePluginChannelRegistry(pluginRegistry);
     }
     ({ browserControl, pluginServices } = await startGatewaySidecars({
       cfg: cfgAtStart,
@@ -1350,6 +1399,7 @@ export async function startGatewayServer(
       browserAuthRateLimiter.dispose();
       stopModelPricingRefresh();
       channelHealthMonitor?.stop();
+      await hardwareWatchSubscriptions.clear();
       clearSecretsRuntimeSnapshot();
       await close(opts);
     },

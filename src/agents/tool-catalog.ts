@@ -210,6 +210,14 @@ const CORE_TOOL_DEFINITIONS: CoreToolDefinition[] = [
     includeInOpenClawGroup: true,
   },
   {
+    id: "hardware",
+    label: "hardware",
+    description: "Hardware orchestration",
+    sectionId: "nodes",
+    profiles: [],
+    includeInOpenClawGroup: true,
+  },
+  {
     id: "nodes",
     label: "nodes",
     description: "Nodes + devices",

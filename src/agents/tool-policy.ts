@@ -32,6 +32,7 @@ const OWNER_ONLY_TOOL_NAME_FALLBACKS = new Set<string>([
   "whatsapp_login",
   "cron",
   "gateway",
+  "hardware",
   "nodes",
 ]);
 

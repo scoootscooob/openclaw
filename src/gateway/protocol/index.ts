@@ -111,6 +111,18 @@ import {
   DeviceTokenRevokeParamsSchema,
   type DeviceTokenRotateParams,
   DeviceTokenRotateParamsSchema,
+  type HardwareAdaptersListParams,
+  HardwareAdaptersListParamsSchema,
+  type HardwareResourceActionParams,
+  HardwareResourceActionParamsSchema,
+  type HardwareResourceGetParams,
+  HardwareResourceGetParamsSchema,
+  type HardwareResourcesListParams,
+  HardwareResourcesListParamsSchema,
+  type HardwareWatchSubscribeParams,
+  HardwareWatchSubscribeParamsSchema,
+  type HardwareWatchUnsubscribeParams,
+  HardwareWatchUnsubscribeParamsSchema,
   type ExecApprovalsGetParams,
   ExecApprovalsGetParamsSchema,
   type ExecApprovalsNodeGetParams,
@@ -424,6 +436,24 @@ export const validateDeviceTokenRotateParams = ajv.compile<DeviceTokenRotatePara
 );
 export const validateDeviceTokenRevokeParams = ajv.compile<DeviceTokenRevokeParams>(
   DeviceTokenRevokeParamsSchema,
+);
+export const validateHardwareAdaptersListParams = ajv.compile<HardwareAdaptersListParams>(
+  HardwareAdaptersListParamsSchema,
+);
+export const validateHardwareResourcesListParams = ajv.compile<HardwareResourcesListParams>(
+  HardwareResourcesListParamsSchema,
+);
+export const validateHardwareResourceGetParams = ajv.compile<HardwareResourceGetParams>(
+  HardwareResourceGetParamsSchema,
+);
+export const validateHardwareResourceActionParams = ajv.compile<HardwareResourceActionParams>(
+  HardwareResourceActionParamsSchema,
+);
+export const validateHardwareWatchSubscribeParams = ajv.compile<HardwareWatchSubscribeParams>(
+  HardwareWatchSubscribeParamsSchema,
+);
+export const validateHardwareWatchUnsubscribeParams = ajv.compile<HardwareWatchUnsubscribeParams>(
+  HardwareWatchUnsubscribeParamsSchema,
 );
 export const validateExecApprovalsGetParams = ajv.compile<ExecApprovalsGetParams>(
   ExecApprovalsGetParamsSchema,

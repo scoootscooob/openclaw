@@ -33,7 +33,7 @@ import {
   type OperatorScope,
 } from "./method-scopes.js";
 import { isSecureWebSocketUrl } from "./net.js";
-import { PROTOCOL_VERSION } from "./protocol/index.js";
+import { PROTOCOL_VERSION, type EventFrame } from "./protocol/index.js";
 
 type CallGatewayBaseOptions = {
   url?: string;
@@ -314,7 +314,9 @@ function resolveGatewayCallTimeout(timeoutValue: unknown): {
   return { timeoutMs, safeTimerTimeoutMs };
 }
 
-function resolveGatewayCallContext(opts: CallGatewayBaseOptions): ResolvedGatewayCallContext {
+function resolveGatewayCallContext(
+  opts: Pick<CallGatewayBaseOptions, "config" | "configPath" | "url" | "token" | "password">,
+): ResolvedGatewayCallContext {
   const config = opts.config ?? gatewayCallDeps.loadConfig();
   const configPath =
     opts.configPath ??
@@ -750,7 +752,7 @@ export async function resolveGatewayCredentialsWithSecretInputs(params: {
 }
 
 async function resolveGatewayTlsFingerprint(params: {
-  opts: CallGatewayBaseOptions;
+  opts: Pick<CallGatewayBaseOptions, "tlsFingerprint">;
   context: ResolvedGatewayCallContext;
   url: string;
 }): Promise<string | undefined> {
@@ -991,4 +993,141 @@ export async function callGateway<T = Record<string, unknown>>(
 
 export function randomIdempotencyKey() {
   return randomUUID();
+}
+
+// ---------------------------------------------------------------------------
+// Persistent event-stream connection (hardware watch, etc.)
+// ---------------------------------------------------------------------------
+
+export type ConnectGatewayForEventsOptions = Omit<
+  CallGatewayBaseOptions,
+  "method" | "params" | "expectFinal"
+> & {
+  subscribeMethod: string;
+  subscribeParams?: unknown;
+  onEvent: (evt: EventFrame) => void;
+  onDisconnect?: (err?: Error) => void;
+};
+
+export type GatewayEventConnection = {
+  subscriptionPayload: Record<string, unknown>;
+  stop: () => void;
+};
+
+/**
+ * Opens a persistent gateway WebSocket, sends a subscribe RPC, then forwards
+ * broadcast events to `opts.onEvent` until `stop()` is called.
+ */
+export async function connectGatewayForEvents(
+  opts: ConnectGatewayForEventsOptions,
+): Promise<GatewayEventConnection> {
+  const scopes = CLI_DEFAULT_OPERATOR_SCOPES;
+  const { timeoutMs, safeTimerTimeoutMs } = resolveGatewayCallTimeout(opts.timeoutMs);
+  const context = resolveGatewayCallContext(opts);
+  const resolvedCredentials = await resolveGatewayCredentials(context);
+  ensureExplicitGatewayAuth({
+    urlOverride: context.urlOverride,
+    urlOverrideSource: context.urlOverrideSource,
+    explicitAuth: context.explicitAuth,
+    resolvedAuth: resolvedCredentials,
+    errorHint: "Fix: pass --token or --password.",
+    configPath: context.configPath,
+  });
+  ensureRemoteModeUrlConfigured(context);
+  const connectionDetails = buildGatewayConnectionDetails({
+    config: context.config,
+    url: context.urlOverride,
+    urlSource: context.urlOverrideSource,
+  });
+  const url = connectionDetails.url;
+  const tlsFingerprint = await resolveGatewayTlsFingerprint({ opts, context, url });
+  const { token, password } = resolvedCredentials;
+
+  return await new Promise<GatewayEventConnection>((resolve, reject) => {
+    let settled = false;
+    let ignoreClose = false;
+    let connectTimer: NodeJS.Timeout | null = null;
+
+    const settle = (err?: Error, value?: GatewayEventConnection) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      if (connectTimer) {
+        clearTimeout(connectTimer);
+        connectTimer = null;
+      }
+      if (err) {
+        reject(err);
+      } else {
+        resolve(value!);
+      }
+    };
+
+    const client = gatewayCallDeps.createGatewayClient({
+      url,
+      token,
+      password,
+      tlsFingerprint,
+      instanceId: opts.instanceId ?? randomUUID(),
+      clientName: opts.clientName ?? GATEWAY_CLIENT_NAMES.CLI,
+      clientDisplayName: opts.clientDisplayName,
+      clientVersion: opts.clientVersion ?? VERSION,
+      platform: opts.platform,
+      mode: opts.mode ?? GATEWAY_CLIENT_MODES.CLI,
+      role: "operator",
+      scopes,
+      deviceIdentity: shouldAttachDeviceIdentityForGatewayCall({ url, token, password })
+        ? loadOrCreateDeviceIdentity()
+        : undefined,
+      minProtocol: opts.minProtocol ?? PROTOCOL_VERSION,
+      maxProtocol: opts.maxProtocol ?? PROTOCOL_VERSION,
+      onEvent: opts.onEvent,
+      onHelloOk: async (hello) => {
+        try {
+          ensureGatewaySupportsRequiredMethods({
+            requiredMethods: opts.requiredMethods,
+            methods: hello.features?.methods,
+            attemptedMethod: opts.subscribeMethod,
+          });
+          const payload = await client.request(opts.subscribeMethod, opts.subscribeParams, {
+            timeoutMs,
+          });
+          settle(undefined, {
+            subscriptionPayload: payload,
+            stop: () => {
+              ignoreClose = true;
+              client.stop();
+            },
+          });
+        } catch (err) {
+          ignoreClose = true;
+          client.stop();
+          settle(err as Error);
+        }
+      },
+      onClose: (code, reason) => {
+        if (ignoreClose) {
+          return;
+        }
+        ignoreClose = true;
+        client.stop();
+        const error = new Error(formatGatewayCloseError(code, reason, connectionDetails));
+        if (!settled) {
+          settle(error);
+        } else {
+          opts.onDisconnect?.(error);
+        }
+      },
+    });
+
+    connectTimer = setTimeout(() => {
+      connectTimer = null;
+      ignoreClose = true;
+      client.stop();
+      settle(new Error(formatGatewayTimeoutError(timeoutMs, connectionDetails)));
+    }, safeTimerTimeoutMs);
+
+    client.start();
+  });
 }

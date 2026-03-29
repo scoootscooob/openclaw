@@ -72,6 +72,7 @@ type ImageGenerationProviderContractEntry = CapabilityContractEntry<ImageGenerat
 type PluginRegistrationContractEntry = {
   pluginId: string;
   providerIds: string[];
+  hardwareAdapterIds?: string[];
   speechProviderIds: string[];
   mediaUnderstandingProviderIds: string[];
   imageGenerationProviderIds: string[];
@@ -410,6 +411,10 @@ function upsertPluginRegistrationContractEntry(
     return;
   }
   existing.providerIds = mergeIds(existing.providerIds, next.providerIds);
+  existing.hardwareAdapterIds = mergeIds(
+    existing.hardwareAdapterIds ?? [],
+    next.hardwareAdapterIds ?? [],
+  );
   existing.speechProviderIds = mergeIds(existing.speechProviderIds, next.speechProviderIds);
   existing.mediaUnderstandingProviderIds = mergeIds(
     existing.mediaUnderstandingProviderIds,
@@ -440,6 +445,7 @@ function mergeProviderContractRegistrations(
     upsertPluginRegistrationContractEntry(registrationEntries, {
       pluginId,
       providerIds: providerIds.toSorted((left, right) => left.localeCompare(right)),
+      hardwareAdapterIds: [],
       speechProviderIds: [],
       mediaUnderstandingProviderIds: [],
       imageGenerationProviderIds: [],
@@ -457,6 +463,7 @@ function loadPluginRegistrationContractRegistry(): PluginRegistrationContractEnt
       upsertPluginRegistrationContractEntry(entries, {
         pluginId: plugin.id,
         providerIds: captured.providers.map((provider) => provider.id),
+        hardwareAdapterIds: captured.hardwareAdapters.map((adapter) => adapter.id),
         speechProviderIds: captured.speechProviders.map((provider) => provider.id),
         mediaUnderstandingProviderIds: captured.mediaUnderstandingProviders.map(
           (provider) => provider.id,

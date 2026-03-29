@@ -1053,6 +1053,14 @@ export function attachGatewayWsMessageHandler(params: {
                 `voicewake snapshot failed for ${nodeSession.nodeId}: ${formatForLog(err)}`,
               ),
             );
+          // Register hardware bridge adapter if the node declares the capability.
+          void context
+            .onHardwareBridgeNodeConnected?.(nodeSession)
+            ?.catch((err) =>
+              logGateway.warn(
+                `hardware bridge registration failed for ${nodeSession.nodeId}: ${formatForLog(err)}`,
+              ),
+            );
         }
 
         logWs("out", "hello-ok", {

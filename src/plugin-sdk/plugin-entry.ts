@@ -9,6 +9,7 @@ import type {
 
 export type {
   AnyAgentTool,
+  HardwareAdapterPlugin,
   MediaUnderstandingProviderPlugin,
   OpenClawPluginApi,
   PluginCommandContext,
@@ -48,6 +49,20 @@ export type {
   PluginLogger,
   PluginInteractiveTelegramHandlerContext,
 } from "../plugins/types.js";
+export type {
+  HardwareActionParams,
+  HardwareActionResult,
+  HardwareAdapterFeature,
+  HardwareAdapterWatchEvent,
+  HardwareAdapterResource,
+  HardwareListParams,
+  HardwareResourceAction,
+  HardwareResourceRecord,
+  HardwareResourceState,
+  HardwareWatchEvent,
+  HardwareWatchEventKind,
+  HardwareWatchParams,
+} from "../hardware/types.js";
 export type { OpenClawConfig } from "../config/config.js";
 
 export { emptyPluginConfigSchema } from "../plugins/config-schema.js";

@@ -109,6 +109,14 @@ import {
   TickEventSchema,
 } from "./frames.js";
 import {
+  HardwareAdaptersListParamsSchema,
+  HardwareResourceActionParamsSchema,
+  HardwareResourceGetParamsSchema,
+  HardwareResourcesListParamsSchema,
+  HardwareWatchSubscribeParamsSchema,
+  HardwareWatchUnsubscribeParamsSchema,
+} from "./hardware.js";
+import {
   ChatAbortParamsSchema,
   ChatEventSchema,
   ChatHistoryParamsSchema,
@@ -310,6 +318,12 @@ export const ProtocolSchemas = {
   DeviceTokenRevokeParams: DeviceTokenRevokeParamsSchema,
   DevicePairRequestedEvent: DevicePairRequestedEventSchema,
   DevicePairResolvedEvent: DevicePairResolvedEventSchema,
+  HardwareAdaptersListParams: HardwareAdaptersListParamsSchema,
+  HardwareResourcesListParams: HardwareResourcesListParamsSchema,
+  HardwareResourceGetParams: HardwareResourceGetParamsSchema,
+  HardwareResourceActionParams: HardwareResourceActionParamsSchema,
+  HardwareWatchSubscribeParams: HardwareWatchSubscribeParamsSchema,
+  HardwareWatchUnsubscribeParams: HardwareWatchUnsubscribeParamsSchema,
   ChatHistoryParams: ChatHistoryParamsSchema,
   ChatSendParams: ChatSendParamsSchema,
   ChatAbortParams: ChatAbortParamsSchema,

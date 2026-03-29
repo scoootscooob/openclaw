@@ -1,0 +1,30 @@
+{
+  "id": "applehome",
+  "name": "Apple Home",
+  "description": "Discover and control HomeKit accessories on the local network.",
+  "uiHints": {
+    "pin": {
+      "label": "HomeKit Setup Code",
+      "placeholder": "031-45-154",
+      "sensitive": true
+    },
+    "discoveryTimeoutMs": {
+      "label": "Discovery Timeout (ms)",
+      "advanced": true
+    }
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "pin": {
+        "type": "string",
+        "minLength": 1
+      },
+      "discoveryTimeoutMs": {
+        "type": "number",
+        "minimum": 1000
+      }
+    }
+  }
+}

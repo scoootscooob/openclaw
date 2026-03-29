@@ -139,6 +139,20 @@ describe("plugin shape compatibility matrix", () => {
       },
     });
 
+    registerTestPlugin({
+      registry,
+      config,
+      record: createPluginRecord("hardware-demo", "Hardware Demo"),
+      register(api) {
+        api.registerHardwareAdapter({
+          id: "hardware-demo",
+          label: "Hardware Demo",
+          supportedFeatures: ["list", "watch"],
+          isConfigured: true,
+        });
+      },
+    });
+
     const inspect = buildAllPluginInspectReports({
       config,
       report: {
@@ -174,6 +188,11 @@ describe("plugin shape compatibility matrix", () => {
         shape: "plain-capability",
         capabilityMode: "plain",
       },
+      {
+        id: "hardware-demo",
+        shape: "plain-capability",
+        capabilityMode: "plain",
+      },
     ]);
 
     expect(inspect[0]?.usesLegacyBeforeAgentStart).toBe(true);
@@ -183,5 +202,6 @@ describe("plugin shape compatibility matrix", () => {
       "web-search",
     ]);
     expect(inspect[3]?.capabilities.map((entry) => entry.kind)).toEqual(["channel"]);
+    expect(inspect[4]?.capabilities.map((entry) => entry.kind)).toEqual(["hardware"]);
   });
 });
